@@ -8,16 +8,16 @@ import operator
 import copy
 
 WORDLIST_FILENAME = "words.txt"
+WORD_LENTH = 5
 
 def load_words():
     print("Loading word list...")
     inFile = open(WORDLIST_FILENAME, 'r')
     line = inFile.readline()
     wordlist = line.split()
-    wordlength = 5  # Reduce to 5-letter words only
     choosen_word_length = []
     for x in wordlist:
-        if len(x) == wordlength:
+        if len(x) == WORD_LENTH:
             choosen_word_length.append(x)
     print("  ", len(choosen_word_length), "words loaded.")
     return choosen_word_length
@@ -82,7 +82,7 @@ def get_possible_matches(letter_status):
 
 
 def update_letter_status(test_letter_status, secret_word, guess, attempts):
-    for i in range(5):
+    for i in range(WORD_LENTH):
         if guess[i] == secret_word[i]:
             test_letter_status[guess[i]]['inword'] = True
             if not test_letter_status[guess[i]]['inposition']:
@@ -143,10 +143,12 @@ def play_wordle(secret_word, wordlist):
     attempts = ""
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
+        print("Type a " + str(WORD_LENTH) + " word, ! for potential word, or !! for potential words with a suggestion")
+
         get_available_letter_status(letter_status)  # prints keyboard
 
         # request guess
-        guess = str(input("Please guess a word " + str(len(secret_word)) + " letters long: ")).lower()[:5]
+        guess = str(input("Please guess a word " + str(len(secret_word)) + " letters long: ")).lower()[:WORD_LENTH]
 
         # check if they made the correct guess!
         if guess == secret_word:
@@ -159,7 +161,7 @@ def play_wordle(secret_word, wordlist):
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
             show_possible_matches(letter_status, True)
-        elif len(guess) != 5:
+        elif len(guess) != WORD_LENTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
             print("Sorry, " + guess + " is not a word I know. Try again.")
@@ -177,6 +179,3 @@ def play_wordle(secret_word, wordlist):
 
 if __name__ == "__main__":
     play_wordle(choose_word(wordlist), wordlist)
-
-    # to test the best guess tool comment out above
-    # best_guess_results(1000)
