@@ -6,9 +6,21 @@ import random
 import string
 import operator
 import copy
+import time
 
 WORDLIST_FILENAME = "words.txt"
-WORD_LENTH = 5
+WORD_LENGTH = 5
+NOT_IN_WORD = "NIW"
+IN_WORD = "IW"
+IN_POSITION = "IP"
+NOT_IN_POSITION = "NIP"
+QWERTY = 'qwertyuiopasdfghjklzxcvbnm'
+
+GREEN = " \033[0;30;42m "
+BLACK = " \033[0;37;40m "
+YELLOW = " \033[0;30;43m "
+GREY = " \033[0;30;47m "
+SPACE_COLOR = " \033[0;37;48m"
 
 def load_words():
     print("Loading word list...")
@@ -17,34 +29,37 @@ def load_words():
     wordlist = line.split()
     choosen_word_length = []
     for x in wordlist:
-        if len(x) == WORD_LENTH:
+        if len(x) == WORD_LENGTH:
             choosen_word_length.append(x)
     print("  ", len(choosen_word_length), "words loaded.")
     return choosen_word_length
+
 
 def choose_word(wordlist):
     return random.choice(wordlist)
 
 wordlist = load_words()
 
-def get_available_letter_status(letter_status):
-    for i in letter_status:
+
+def get_available_knowledge(knowledge):
+    for i in knowledge:
         if i == 'a' or i == 'z':
             print("\n")
-        if letter_status[i]['inposition']:
-            print(" \033[0;30;42m " + i, end=" \033[0;37;48m")
-        elif letter_status[i]['inword']:
-            print(" \033[0;30;43m " + i, end=" \033[0;37;48m")
-        elif letter_status[i]['tried']:
-            print(" \033[0;30;47m " + i, end=" \033[0;37;48m")
+        if knowledge[i][IN_POSITION]:
+            print(GREEN + i, end=SPACE_COLOR)
+        elif knowledge[i][IN_WORD]:
+            print(YELLOW + i, end=SPACE_COLOR)
+        elif knowledge[i][NOT_IN_WORD]:
+            print(GREY + i, end=SPACE_COLOR)
         else:
-            print(" \033[0;37;40m " + i, end=" \033[0;37;48m")
+            print(BLACK + i, end=SPACE_COLOR)
     print("\n")
 
-def test_word_for_match(test_word, letter_status):
+
+def test_word_for_match(test_word, knowledge):
     '''
     test_word: string with word to test as a possible match
-    letter_status: with current status
+    knowledge: with current status
     returns: boolean, True if the word has 
         a. no letters known not to be in the word is in the word
         b. all the letters known to be found in the word
@@ -55,57 +70,83 @@ def test_word_for_match(test_word, letter_status):
 
     # remove words that include letters known not to be in word
     for i in test_word:
-        if letter_status[i]['tried']:
+        if knowledge[i][NOT_IN_WORD]:
             return False
-    for j in letter_status:
+    for j in knowledge:
         # remove words without letters known to be in the word
-        if letter_status[j]['inword'] and j not in test_word:
+        if knowledge[j][IN_WORD] and j not in test_word:
             return False
         # remove words with letters in known place
-        elif letter_status[j]['inposition']:
-            for i in letter_status[j]['inposition']:
+        elif knowledge[j][IN_POSITION]:
+            for i in knowledge[j][IN_POSITION]:
                 if not test_word[i] == j:
                     return False
         else:
-            for i in letter_status[j]['notposition']:
+            for i in knowledge[j][NOT_IN_POSITION]:
                 if test_word[i] == j:
                     return False
     return True
 
 
-def get_possible_matches(letter_status):
+def get_possible_matches(knowledge):
     matches = []
     for other_word in wordlist:
-        if test_word_for_match(other_word, letter_status):
+        if test_word_for_match(other_word, knowledge):
             matches.append(other_word)
     return matches
 
+def generate_exclusion_map(secret_word_options, guess_options):
+    # WIP use exclusion map and combine knowledge to figure out which words will reduce knowledge the most
+    exclusion_map = {}
+    for secret in secret_word_options:
+        for guess in guess_options:
+            exclusion_map[secret+guess] = update_knowledge(default_knowledge(), secret, guess)
+    return exclusion_map
 
-def update_letter_status(test_letter_status, secret_word, guess, attempts):
-    for i in range(WORD_LENTH):
+def update_knowledge(knowledge, secret_word, guess):
+    for i in range(WORD_LENGTH):
         if guess[i] == secret_word[i]:
-            test_letter_status[guess[i]]['inword'] = True
-            if not test_letter_status[guess[i]]['inposition']:
-                test_letter_status[guess[i]]['inposition'] = [i]
-            else:
-                test_letter_status[guess[i]]['inposition'].append(i)
-            attempts += " \033[0;30;42m " + guess[i] + " \033[0;37;48m"
+            knowledge[guess[i]][IN_WORD] = True
+            knowledge[guess[i]][IN_POSITION].append(i)
         elif guess[i] in secret_word:
-            test_letter_status[guess[i]]['inword'] = True
-            test_letter_status[guess[i]]['notposition'].append(i)
-            attempts += " \033[0;30;43m " + guess[i] + " \033[0;37;48m"
+            knowledge[guess[i]][IN_WORD] = True
+            knowledge[guess[i]][NOT_IN_POSITION].append(i)
         else:
-            test_letter_status[guess[i]]['tried'] = True
-            attempts += " \033[0;30;47m " + guess[i] + " \033[0;37;48m"
-    attempts += "\n\n"
-    return {"letter_status": test_letter_status, "attempts": attempts}
+            knowledge[guess[i]][NOT_IN_WORD] = True
+    return knowledge
 
+def default_knowledge():
+    knowledge = {}
+    for i in QWERTY:
+        knowledge[i] = {NOT_IN_WORD: 0, IN_POSITION: [], IN_WORD: 0, NOT_IN_POSITION: []}
+    return knowledge
 
-def show_possible_matches(letter_status, suggest_guess):
+def combined_knowledge(k1, k2):
+    for i in QWERTY:
+        combined_knowledge[i][NOT_IN_WORD] = k1[i][NOT_IN_WORD] + k2[i][NOT_IN_WORD]
+        combined_knowledge[i][IN_WORD] = k1[i][IN_WORD] + k2[i][IN_WORD]
+        combined_knowledge[i][NOT_IN_POSITION] = list(set(k1[i][IN_POSITION]+k2[i][IN_POSITION]))
+        combined_knowledge[i][NOT_IN_POSITION] = list(set(k1[i][NOT_IN_POSITION] + k2[i][NOT_IN_POSITION]))
+    return combined_knowledge
+
+def decorate_word_with_knowledge(knowledge, word):
+    decorated_word = ""
+    for i in range(WORD_LENGTH):
+        if i in knowledge[word[i]][IN_POSITION]:
+            decorated_word += GREEN + word[i] + SPACE_COLOR
+        elif knowledge[word[i]][IN_WORD]:
+            decorated_word += YELLOW + word[i] + SPACE_COLOR
+        elif knowledge[word[i]][NOT_IN_WORD]:
+            decorated_word += GREY + word[i] + SPACE_COLOR
+        else:
+            decorated_word += " " + word[i] + " "
+    return decorated_word + "\n\n"
+
+def show_possible_matches(knowledge, suggest_guess):
     '''
     returns: nothing, print out every word in wordlist that matches letter location
     '''
-    matches = get_possible_matches(copy.deepcopy(letter_status))
+    matches = get_possible_matches(copy.deepcopy(knowledge))
     print(matches)
 
     if suggest_guess:
@@ -116,13 +157,29 @@ def show_possible_matches(letter_status, suggest_guess):
         reductive_power = {}
 
         # test every word possible word for reductive power for every remaining potential word (note: not efficent!)
+        total_matches = len(matches)
+        count = 0
+        start_time = time.time()
         for example_secret_word in matches:
+            time_now = time.time()
+            elapsed_minutes = (time_now - start_time) / 60
+            progress = count / total_matches
+            progress_to_finish = 1 - count / total_matches
+
+            if progress == 0:
+                time_left = "TBD"
+            else:
+                time_left = str(round(elapsed_minutes * progress_to_finish / progress, 0))
+
+            print(str(round(progress * 100, 2)) + "% done over ~" + str(
+                round(elapsed_minutes, 1)) + " minutes. Estimated " + time_left + " minutes left")
+            count += 1
             for sample_guess in wordlist:
-                test_status = update_letter_status(copy.deepcopy(letter_status), example_secret_word,
+                test_status = update_knowledge(copy.deepcopy(knowledge), example_secret_word,
                                                    sample_guess, "")
                 if sample_guess not in reductive_power.keys():
                     reductive_power[sample_guess] = 0
-                reductive_power[sample_guess] += len(get_possible_matches(test_status['letter_status']))
+                reductive_power[sample_guess] += len(get_possible_matches(test_status['knowledge']))
 
         # rank potential guesses
         sorted_reductive_power = sorted(reductive_power.items(), key=operator.itemgetter(1))
@@ -133,10 +190,7 @@ def show_possible_matches(letter_status, suggest_guess):
 
 def play_wordle(secret_word, wordlist):
     remaining_guesses = 6
-    qwerty = 'qwertyuiopasdfghjklzxcvbnm'
-    letter_status = {}
-    for i in qwerty:
-        letter_status[i] = {"tried": False, "inposition": False, "inword": False, "notposition": []}
+    knowledge = default_knowledge()
 
     # starting welcome
     print("Welcome to Wordle!")
@@ -145,12 +199,13 @@ def play_wordle(secret_word, wordlist):
     attempts = ""
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
-        print("Type a " + str(WORD_LENTH) + " letter word, ! for potential word, or !! for potential words with a suggestion")
+        print("Type a " + str(
+            WORD_LENGTH) + " letter word, ! for potential word, or !! for potential words with a suggestion")
 
-        get_available_letter_status(letter_status)  # prints keyboard
+        get_available_knowledge(knowledge)  # prints keyboard
 
         # request guess
-        guess = str(input("Please guess a word " + str(len(secret_word)) + " letters long: ")).lower()[:WORD_LENTH]
+        guess = str(input("Please guess a word " + str(len(secret_word)) + " letters long: ")).lower()[:WORD_LENGTH]
 
         # check if they made the correct guess!
         if guess == secret_word:
@@ -159,20 +214,19 @@ def play_wordle(secret_word, wordlist):
 
         # if asking for potential matches show list
         if guess == "!":
-            show_possible_matches(letter_status, False)
+            show_possible_matches(knowledge, False)
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
-            show_possible_matches(letter_status, True)
-        elif len(guess) != WORD_LENTH:
+            show_possible_matches(knowledge, True)
+        elif len(guess) != WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
             print("Sorry, " + guess + " is not a word I know. Try again.")
 
         # review guess
         else:
-            new_letter_status = update_letter_status(letter_status, secret_word, guess, attempts)
-            letter_status = new_letter_status['letter_status']
-            attempts = new_letter_status['attempts']
+            knowledge = update_knowledge(knowledge, secret_word, guess)
+            attempts += decorate_word_with_knowledge(knowledge,guess)
             print(attempts)
             remaining_guesses -= 1
             if remaining_guesses == 0:
@@ -183,5 +237,5 @@ def play_wordle(secret_word, wordlist):
 if __name__ == "__main__":
     play_wordle(choose_word(wordlist), wordlist)
     # Try for a specific word
-    # chose_word = "panic
+    # chose_word = "panic"
     # play_wordle(chose_word, wordlist)
