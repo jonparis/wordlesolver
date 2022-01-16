@@ -126,7 +126,9 @@ def show_possible_matches(letter_status, suggest_guess):
 
         # rank potential guesses
         sorted_reductive_power = sorted(reductive_power.items(), key=operator.itemgetter(1))
-        print("The best guess is " + str(sorted_reductive_power[0]))
+        best_guesses_up_to_ten = list(sorted_reductive_power)[:10]
+
+        print("The best guesses are " + str(best_guesses_up_to_ten))
 
 
 def play_wordle(secret_word, wordlist):
@@ -143,7 +145,7 @@ def play_wordle(secret_word, wordlist):
     attempts = ""
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
-        print("Type a " + str(WORD_LENTH) + " word, ! for potential word, or !! for potential words with a suggestion")
+        print("Type a " + str(WORD_LENTH) + " letter word, ! for potential word, or !! for potential words with a suggestion")
 
         get_available_letter_status(letter_status)  # prints keyboard
 
@@ -153,7 +155,7 @@ def play_wordle(secret_word, wordlist):
         # check if they made the correct guess!
         if guess == secret_word:
             print("Congratulations, you won!")
-            break
+            play_wordle(choose_word(wordlist), wordlist)
 
         # if asking for potential matches show list
         if guess == "!":
@@ -175,7 +177,11 @@ def play_wordle(secret_word, wordlist):
             remaining_guesses -= 1
             if remaining_guesses == 0:
                 print("Sorry, you ran out of guesses. The word was " + secret_word + ".")
+                play_wordle(choose_word(wordlist), wordlist)
 
 
 if __name__ == "__main__":
     play_wordle(choose_word(wordlist), wordlist)
+    # Try for a specific word
+    # chose_word = "panic
+    # play_wordle(chose_word, wordlist)
