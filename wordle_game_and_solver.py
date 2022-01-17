@@ -3,6 +3,7 @@
 # Collaborators: Joey Paris, Nathan Paris
 
 import random
+from random import sample
 import string
 import operator
 import copy
@@ -21,6 +22,9 @@ BLACK = " \033[0;37;40m "
 YELLOW = " \033[0;30;43m "
 GREY = " \033[0;30;47m "
 SPACE_COLOR = " \033[0;37;48m"
+
+SUGGEST_GUESS = "SUGGEST_GUESS"
+SUGGEST_GUESS_MATCHES_ONLY = "SUGGEST_GUESS_MATCHES_ONLY"
 
 
 def load_words():
@@ -108,7 +112,11 @@ def generate_exclusion_knowledge(secret_word_options, guess_options):
     for guess in guess_options:
         exclusions_by_guess[guess] = 0
 
-    for secret in secret_word_options:
+    sample_count = 100
+
+    if total_matches < 100:
+        sample_count = total_matches
+    for secret in sample(secret_word_options,sample_count):
         # Set timer to make sure the process won't take too long
         time_now = time.time()
         elapsed_minutes = (time_now - start_time) / 60
@@ -183,47 +191,20 @@ def show_possible_matches(knowledge, suggest_guess):
     '''
     matches = get_possible_matches(copy.deepcopy(knowledge))
     print(matches)
+    print("There is/are " + str(len(matches)) + " potential matches")
 
-    if suggest_guess:
+    if suggest_guess == SUGGEST_GUESS:
         # For each word in word_list and how many remaining matched would exist if guessed
         # The sum for every potential word is the word_reductive_power
         # The word with the lowest sum has the most reductive power
         # Suggest the word with the more reductive power
-
-        """
-        reductive_power = {}
-
-        # test every word possible word for reductive power for every remaining potential word (note: not efficent!)
-        total_matches = len(matches)
-        count = 0
-        start_time = time.time()
-        for example_secret_word in matches:
-            time_now = time.time()
-            elapsed_minutes = (time_now - start_time) / 60
-            progress = count / total_matches
-            progress_to_finish = 1 - count / total_matches
-
-            if progress == 0:
-                time_left = "TBD"
-            else:
-                time_left = str(round(elapsed_minutes * progress_to_finish / progress, 0))
-
-            print(str(round(progress * 100, 2)) + "% done over ~" + str(
-                round(elapsed_minutes, 1)) + " minutes. Estimated " + time_left + " minutes left")
-            count += 1
-            for sample_guess in wordlist:
-                test_status = update_knowledge(copy.deepcopy(knowledge), example_secret_word,
-                                                   sample_guess, "")
-                if sample_guess not in reductive_power.keys():
-                    reductive_power[sample_guess] = 0
-                reductive_power[sample_guess] += len(get_possible_matches(test_status['knowledge']))
-
-        # rank potential guesses
-        sorted_reductive_power = sorted(reductive_power.items(), key=operator.itemgetter(1))
-        best_guesses_up_to_ten = list(sorted_reductive_power)[:10]
-        """
-
         print("The best guesses are " + str(generate_exclusion_knowledge(matches, wordlist)))
+
+    if suggest_guess == SUGGEST_GUESS_MATCHES_ONLY:
+
+        print("The best guesses are " + str(generate_exclusion_knowledge(matches, get_possible_matches(knowledge))))
+
+
 
 
 def play_wordle(secret_word, wordlist):
@@ -255,7 +236,9 @@ def play_wordle(secret_word, wordlist):
             show_possible_matches(knowledge, False)
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
-            show_possible_matches(knowledge, True)
+            show_possible_matches(knowledge, SUGGEST_GUESS)
+        elif guess == "!!!":
+            show_possible_matches(knowledge, SUGGEST_GUESS_MATCHES_ONLY)
         elif len(guess) != WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
