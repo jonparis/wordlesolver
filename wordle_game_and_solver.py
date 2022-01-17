@@ -22,6 +22,7 @@ YELLOW = " \033[0;30;43m "
 GREY = " \033[0;30;47m "
 SPACE_COLOR = " \033[0;37;48m"
 
+
 def load_words():
     print("Loading word list...")
     inFile = open(WORDLIST_FILENAME, 'r')
@@ -37,6 +38,7 @@ def load_words():
 
 def choose_word(wordlist):
     return random.choice(wordlist)
+
 
 wordlist = load_words()
 
@@ -90,18 +92,47 @@ def test_word_for_match(test_word, knowledge):
 
 def get_possible_matches(knowledge):
     matches = []
-    for other_word in wordlist:
-        if test_word_for_match(other_word, knowledge):
-            matches.append(other_word)
+    for word in wordlist:
+        if test_word_for_match(word, knowledge):
+            matches.append(word)
     return matches
 
-def generate_exclusion_map(secret_word_options, guess_options):
+
+def generate_exclusion_knowledge(secret_word_options, guess_options):
     # WIP use exclusion map and combine knowledge to figure out which words will reduce knowledge the most
-    exclusion_map = {}
+    exclusions_by_guess = {}
+    total_matches = len(secret_word_options)
+    count = 0
+    start_time = time.time()
+
+    for guess in guess_options:
+        exclusions_by_guess[guess] = 0
+
     for secret in secret_word_options:
+        # Set timer to make sure the process won't take too long
+        time_now = time.time()
+        elapsed_minutes = (time_now - start_time) / 60
+        progress = count / total_matches
+        progress_to_finish = 1 - count / total_matches
+
+        if progress == 0:
+            time_left = "TBD"
+        else:
+            time_left = str(round(elapsed_minutes * progress_to_finish / progress, 0))
+
+        print(str(round(progress * 100, 2)) + "% done over ~" + str(
+            round(elapsed_minutes, 1)) + " minutes. Estimated " + time_left + " minutes left")
+        count += 1
+        # END TIMER CODE
+
         for guess in guess_options:
-            exclusion_map[secret+guess] = update_knowledge(default_knowledge(), secret, guess)
-    return exclusion_map
+            for answer in secret_word_options:
+                if not test_word_for_match(answer, update_knowledge(default_knowledge(), secret, guess)):
+                    exclusions_by_guess[guess] += 1
+    # sort
+    exclusions_by_guess = sorted(exclusions_by_guess.items(), key=operator.itemgetter(1), reverse=True)
+    return list(exclusions_by_guess)[:10]
+
 
 def update_knowledge(knowledge, secret_word, guess):
     for i in range(WORD_LENGTH):
@@ -115,19 +146,22 @@ def update_knowledge(knowledge, secret_word, guess):
             knowledge[guess[i]][NOT_IN_WORD] = True
     return knowledge
 
+
 def default_knowledge():
     knowledge = {}
     for i in QWERTY:
         knowledge[i] = {NOT_IN_WORD: 0, IN_POSITION: [], IN_WORD: 0, NOT_IN_POSITION: []}
     return knowledge
 
+
 def combined_knowledge(k1, k2):
     for i in QWERTY:
         combined_knowledge[i][NOT_IN_WORD] = k1[i][NOT_IN_WORD] + k2[i][NOT_IN_WORD]
         combined_knowledge[i][IN_WORD] = k1[i][IN_WORD] + k2[i][IN_WORD]
-        combined_knowledge[i][NOT_IN_POSITION] = list(set(k1[i][IN_POSITION]+k2[i][IN_POSITION]))
+        combined_knowledge[i][NOT_IN_POSITION] = list(set(k1[i][IN_POSITION] + k2[i][IN_POSITION]))
         combined_knowledge[i][NOT_IN_POSITION] = list(set(k1[i][NOT_IN_POSITION] + k2[i][NOT_IN_POSITION]))
     return combined_knowledge
+
 
 def decorate_word_with_knowledge(knowledge, word):
     decorated_word = ""
@@ -142,6 +176,7 @@ def decorate_word_with_knowledge(knowledge, word):
             decorated_word += " " + word[i] + " "
     return decorated_word + "\n\n"
 
+
 def show_possible_matches(knowledge, suggest_guess):
     '''
     returns: nothing, print out every word in wordlist that matches letter location
@@ -154,6 +189,8 @@ def show_possible_matches(knowledge, suggest_guess):
         # The sum for every potential word is the word_reductive_power
         # The word with the lowest sum has the most reductive power
         # Suggest the word with the more reductive power
+
+        """
         reductive_power = {}
 
         # test every word possible word for reductive power for every remaining potential word (note: not efficent!)
@@ -184,8 +221,9 @@ def show_possible_matches(knowledge, suggest_guess):
         # rank potential guesses
         sorted_reductive_power = sorted(reductive_power.items(), key=operator.itemgetter(1))
         best_guesses_up_to_ten = list(sorted_reductive_power)[:10]
+        """
 
-        print("The best guesses are " + str(best_guesses_up_to_ten))
+        print("The best guesses are " + str(generate_exclusion_knowledge(matches, wordlist)))
 
 
 def play_wordle(secret_word, wordlist):
@@ -226,7 +264,7 @@ def play_wordle(secret_word, wordlist):
         # review guess
         else:
             knowledge = update_knowledge(knowledge, secret_word, guess)
-            attempts += decorate_word_with_knowledge(knowledge,guess)
+            attempts += decorate_word_with_knowledge(knowledge, guess)
             print(attempts)
             remaining_guesses -= 1
             if remaining_guesses == 0:
