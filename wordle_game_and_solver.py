@@ -8,6 +8,7 @@ import string
 import operator
 import copy
 import time
+import datetime
 
 WORDLIST_FILENAME = "words.txt"
 WORD_LENGTH = 5
@@ -119,27 +120,34 @@ def generate_exclusion_knowledge(secret_word_options, guess_options):
     for secret in sample(secret_word_options,sample_count):
         # Set timer to make sure the process won't take too long
         time_now = time.time()
-        elapsed_minutes = (time_now - start_time) / 60
+        elapsed_time = int(time_now - start_time)
         progress = count / total_matches
         progress_to_finish = 1 - count / total_matches
 
         if progress == 0:
-            time_left = "TBD"
+            time_left_str = "TBD"
         else:
-            time_left = str(round(elapsed_minutes * progress_to_finish / progress, 0))
+            time_left = int(elapsed_time * progress_to_finish / progress)
+            time_left_str = str(datetime.timedelta(seconds=time_left))
 
-        print(str(round(progress * 100, 2)) + "% done over ~" + str(
-            round(elapsed_minutes, 1)) + " minutes. Estimated " + time_left + " minutes left")
+        print(str(round(progress * 100, 2)) + "% done over ~" + str(datetime.timedelta(seconds=elapsed_time)) + ". Estimated " + time_left_str + " time left")
         count += 1
         # END TIMER CODE
 
         for guess in guess_options:
             for answer in secret_word_options:
                 if not test_word_for_match(answer, update_knowledge(default_knowledge(), secret, guess)):
-                    exclusions_by_guess[guess] += 1
+                    exclusions_by_guess[guess] += 1/total_matches
     # sort
     exclusions_by_guess = sorted(exclusions_by_guess.items(), key=operator.itemgetter(1), reverse=True)
-    return list(exclusions_by_guess)[:10]
+
+    formatted_suggestions = []
+    exclusions_list = list(exclusions_by_guess)[:10]
+    for guess in list(exclusions_by_guess)[:10]:
+        if len(exclusions_list) == 1:
+            return guess[0] + " is the word!"
+        formatted_suggestions.append(guess[0] + " (reduces about " + str(total_matches - round(guess[1]/total_matches,1)) + " of " + str(total_matches) + " potential matches. " + str(round(guess[1]/total_matches*100,0)) + "%)")
+    return formatted_suggestions
 
 
 def update_knowledge(knowledge, secret_word, guess):
@@ -198,16 +206,17 @@ def show_possible_matches(knowledge, suggest_guess):
         # The sum for every potential word is the word_reductive_power
         # The word with the lowest sum has the most reductive power
         # Suggest the word with the more reductive power
-        print("The best guesses are " + str(generate_exclusion_knowledge(matches, wordlist)))
+        print("Best guess(es): " + str(generate_exclusion_knowledge(matches, wordlist)))
 
     if suggest_guess == SUGGEST_GUESS_MATCHES_ONLY:
 
-        print("The best guesses are " + str(generate_exclusion_knowledge(matches, get_possible_matches(knowledge))))
+        print("Best guess(es): " + str(generate_exclusion_knowledge(matches, get_possible_matches(knowledge))))
 
 
 
 
 def play_wordle(secret_word, wordlist):
+    total_guesses = 6
     remaining_guesses = 6
     knowledge = default_knowledge()
 
@@ -229,6 +238,7 @@ def play_wordle(secret_word, wordlist):
         # check if they made the correct guess!
         if guess == secret_word:
             print("Congratulations, you won!")
+            print("It took you " + str(total_guesses - remaining_guesses + 1) + " guesses")
             play_wordle(choose_word(wordlist), wordlist)
 
         # if asking for potential matches show list
