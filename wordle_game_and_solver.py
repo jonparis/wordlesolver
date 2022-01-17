@@ -4,7 +4,6 @@
 
 import random
 from random import sample
-import string
 import operator
 import copy
 import time
@@ -30,22 +29,22 @@ SUGGEST_GUESS_MATCHES_ONLY = "SUGGEST_GUESS_MATCHES_ONLY"
 
 def load_words():
     print("Loading word list...")
-    inFile = open(WORDLIST_FILENAME, 'r')
-    line = inFile.readline()
+    infile = open(WORDLIST_FILENAME, 'r')
+    line = infile.readline()
     wordlist = line.split()
-    choosen_word_length = []
+    chosen_word_length = []
     for x in wordlist:
         if len(x) == WORD_LENGTH:
-            choosen_word_length.append(x)
-    print("  ", len(choosen_word_length), "words loaded.")
-    return choosen_word_length
+            chosen_word_length.append(x)
+    print("  ", len(chosen_word_length), "words loaded.")
+    return chosen_word_length
 
 
 def choose_word(wordlist):
     return random.choice(wordlist)
 
 
-wordlist = load_words()
+WORDS = load_words()
 
 
 def get_available_knowledge(knowledge):
@@ -64,7 +63,7 @@ def get_available_knowledge(knowledge):
 
 
 def test_word_for_match(test_word, knowledge):
-    '''
+    """
     test_word: string with word to test as a possible match
     knowledge: with current status
     returns: boolean, True if the word has 
@@ -73,7 +72,7 @@ def test_word_for_match(test_word, knowledge):
         c. all letters in the place known places
         d. remove words that have letter in known wrong place
     otherwise, returns False
-    '''
+    """
 
     # remove words that include letters known not to be in word
     for i in test_word:
@@ -97,7 +96,7 @@ def test_word_for_match(test_word, knowledge):
 
 def get_possible_matches(knowledge):
     matches = []
-    for word in wordlist:
+    for word in WORDS:
         if test_word_for_match(word, knowledge):
             matches.append(word)
     return matches
@@ -117,7 +116,7 @@ def generate_exclusion_knowledge(secret_word_options, guess_options):
 
     if total_matches < 100:
         sample_count = total_matches
-    for secret in sample(secret_word_options,sample_count):
+    for secret in sample(secret_word_options, sample_count):
         # Set timer to make sure the process won't take too long
         time_now = time.time()
         elapsed_time = int(time_now - start_time)
@@ -130,7 +129,9 @@ def generate_exclusion_knowledge(secret_word_options, guess_options):
             time_left = int(elapsed_time * progress_to_finish / progress)
             time_left_str = str(datetime.timedelta(seconds=time_left))
 
-        print(str(round(progress * 100, 2)) + "% done over ~" + str(datetime.timedelta(seconds=elapsed_time)) + ". Estimated " + time_left_str + " time left")
+        print("{0}% done over ~{1}. Estimated {2} time left".format(str(round(progress * 100, 2)),
+                                                                    str(datetime.timedelta(seconds=elapsed_time)),
+                                                                    time_left_str))
         count += 1
         # END TIMER CODE
 
@@ -146,7 +147,7 @@ def generate_exclusion_knowledge(secret_word_options, guess_options):
     for guess in list(exclusions_by_guess)[:10]:
         if len(exclusions_list) == 1:
             return guess[0] + " is the word!"
-        formatted_suggestions.append(guess[0] + " (reduces about " + str(total_matches - round(guess[1]/total_matches,1)) + " of " + str(total_matches) + " potential matches. " + str(round(guess[1]/total_matches*100,0)) + "%)")
+        formatted_suggestions.append(guess[0] + " (reduces about " + str(total_matches - round(guess[1]/total_matches, 1)) + " of " + str(total_matches) + " potential matches. " + str(round(guess[1]/total_matches*100, 0)) + "%)")
     return formatted_suggestions
 
 
@@ -171,12 +172,13 @@ def default_knowledge():
 
 
 def combined_knowledge(k1, k2):
+    k3 = {}
     for i in QWERTY:
-        combined_knowledge[i][NOT_IN_WORD] = k1[i][NOT_IN_WORD] + k2[i][NOT_IN_WORD]
-        combined_knowledge[i][IN_WORD] = k1[i][IN_WORD] + k2[i][IN_WORD]
-        combined_knowledge[i][NOT_IN_POSITION] = list(set(k1[i][IN_POSITION] + k2[i][IN_POSITION]))
-        combined_knowledge[i][NOT_IN_POSITION] = list(set(k1[i][NOT_IN_POSITION] + k2[i][NOT_IN_POSITION]))
-    return combined_knowledge
+        k3[i][NOT_IN_WORD] = k1[i][NOT_IN_WORD] + k2[i][NOT_IN_WORD]
+        k3[i][IN_WORD] = k1[i][IN_WORD] + k2[i][IN_WORD]
+        k3[i][NOT_IN_POSITION] = list(set(k1[i][IN_POSITION] + k2[i][IN_POSITION]))
+        k3[i][NOT_IN_POSITION] = list(set(k1[i][NOT_IN_POSITION] + k2[i][NOT_IN_POSITION]))
+    return k3
 
 
 def decorate_word_with_knowledge(knowledge, word):
@@ -194,9 +196,9 @@ def decorate_word_with_knowledge(knowledge, word):
 
 
 def show_possible_matches(knowledge, suggest_guess):
-    '''
+    """
     returns: nothing, print out every word in wordlist that matches letter location
-    '''
+    """
     matches = get_possible_matches(copy.deepcopy(knowledge))
     print(matches)
     print("There is/are " + str(len(matches)) + " potential matches")
@@ -206,13 +208,11 @@ def show_possible_matches(knowledge, suggest_guess):
         # The sum for every potential word is the word_reductive_power
         # The word with the lowest sum has the most reductive power
         # Suggest the word with the more reductive power
-        print("Best guess(es): " + str(generate_exclusion_knowledge(matches, wordlist)))
+        print("Best guess(es): " + str(generate_exclusion_knowledge(matches, WORDS)))
 
     if suggest_guess == SUGGEST_GUESS_MATCHES_ONLY:
 
         print("Best guess(es): " + str(generate_exclusion_knowledge(matches, get_possible_matches(knowledge))))
-
-
 
 
 def play_wordle(secret_word, wordlist):
@@ -223,7 +223,6 @@ def play_wordle(secret_word, wordlist):
     # starting welcome
     print("Welcome to Wordle!")
     print("I am thinking of a word that is " + str(len(secret_word)) + " letters long.")
-    message = ""
     attempts = ""
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
@@ -239,7 +238,8 @@ def play_wordle(secret_word, wordlist):
         if guess == secret_word:
             print("Congratulations, you won!")
             print("It took you " + str(total_guesses - remaining_guesses + 1) + " guesses")
-            play_wordle(choose_word(wordlist), wordlist)
+            play_again()
+            break
 
         # if asking for potential matches show list
         if guess == "!":
@@ -262,11 +262,18 @@ def play_wordle(secret_word, wordlist):
             remaining_guesses -= 1
             if remaining_guesses == 0:
                 print("Sorry, you ran out of guesses. The word was " + secret_word + ".")
-                play_wordle(choose_word(wordlist), wordlist)
+                play_again()
+                break
 
 
+def play_again():
+    again = str(input("Play Again? (y/n)")).lower()[0]
+    if again == "y":
+        play_wordle(choose_word(WORDS), WORDS)
+    else:
+        print("bye!")
 if __name__ == "__main__":
-    play_wordle(choose_word(wordlist), wordlist)
+    play_wordle(choose_word(WORDS), WORDS)
     # Try for a specific word
     # chose_word = "panic"
     # play_wordle(chose_word, wordlist)
