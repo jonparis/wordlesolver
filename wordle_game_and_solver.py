@@ -269,8 +269,11 @@ def play_wordle(secret_word, wordlist):
 
 
 def suggestions_only():
-    remaining_guesses = 6
+    total_guesses = 6
+    remaining_guesses = total_guesses
+
     knowledge = default_knowledge()
+
 
     # starting welcome
     print("Welcome to Wordle Helper!")
@@ -284,11 +287,14 @@ def suggestions_only():
         guess = str(input("Type your guess:")).lower()[:WORD_LENGTH]
         print(
             "Type the response you got in order. 'G' if in the right position, 'Y' yellow if in the word but not in the position, and 'R' if not in the word. Example: GRRYR")
-        new_knowledge = str(input("Type the response you got:"))
+        new_knowledge = str(input("Type the response you got:")).upper()
         if len(guess) == WORD_LENGTH and len(new_knowledge) == WORD_LENGTH:
+            if new_knowledge == "GGGGG":
+                print("Congrats! You won in " + str(total_guesses - remaining_guesses + 1) + " guesses!")
+                break
             for i in range(len(guess)):
                 c = guess[i]
-                res = str(new_knowledge[i]).upper()
+                res = str(new_knowledge[i])
                 k = knowledge[str(i)]
                 if res == 'G':
                     if c not in knowledge[IN_WORD]:
@@ -320,8 +326,7 @@ def suggestions_only():
                 else:
                     print("this may take some time")
                     show_possible_matches(knowledge, SUGGEST_GUESS)
-            else:
-                remaining_guesses -= 1
+            remaining_guesses -= 1
         else:
             print("try again. either your guess or feedback was the wrong length")
 
