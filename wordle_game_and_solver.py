@@ -102,7 +102,7 @@ def get_possible_matches(knowledge):
     return matches
 
 
-def generate_exclusion_knowledge(secret_word_options, guess_options):
+def get_suggestion(secret_word_options, guess_options):
     # WIP use exclusion map and combine knowledge to figure out which words will increase knowledge the most
     exclusions_by_guess = {}
     total_matches = len(secret_word_options)
@@ -132,15 +132,15 @@ def generate_exclusion_knowledge(secret_word_options, guess_options):
 
         if show_timer:
             print("{0}% done over ~{1}. Estimated {2} time left".format(str(round(progress * 100, 2)),
-                                                                    str(datetime.timedelta(seconds=elapsed_time)),
-                                                                    time_left_str))
+                                                                        str(datetime.timedelta(seconds=elapsed_time)),
+                                                                        time_left_str))
         count += 1
         # END TIMER CODE
 
         for guess in guess_options:
             for answer in secret_word_options:
                 if not test_word_for_match(answer, update_knowledge(default_knowledge(), secret, guess)):
-                    exclusions_by_guess[guess] += 1/total_matches
+                    exclusions_by_guess[guess] += 1 / total_matches
     # sort
     suggested_guess = False
     max_excl = 0
@@ -159,7 +159,7 @@ def update_knowledge(knowledge, secret_word, guess):
         if c == secret_word[i]:
             if c not in knowledge[IN_WORD]:
                 knowledge[IN_WORD].append(c)
-            k[IN_POSITION] == c
+            k[IN_POSITION] = c
         elif c in secret_word:
             if c not in knowledge[IN_WORD]:
                 knowledge[IN_WORD].append(c)
@@ -176,6 +176,7 @@ def default_knowledge():
     for i in range(WORD_LENGTH):
         knowledge[str(i)] = {NOT_IN_POSITION: [], IN_POSITION: False}
     return knowledge
+
 
 def decorate_word_with_knowledge(knowledge, word):
     decorated_word = ""
@@ -210,11 +211,10 @@ def show_possible_matches(knowledge, suggest_guess):
         if len(matches) < 5:
             suggest_guess = SUGGEST_GUESS_MATCHES_ONLY
         else:
-            print("Suggested guess: " + str(generate_exclusion_knowledge(matches, WORDS)))
+            print("Suggested guess: " + str(get_suggestion(matches, WORDS)))
 
     if suggest_guess == SUGGEST_GUESS_MATCHES_ONLY:
-
-        print("Suggested guess: " + str(generate_exclusion_knowledge(matches, get_possible_matches(knowledge))))
+        print("Suggested guess: " + str(get_suggestion(matches, get_possible_matches(knowledge))))
 
 
 def play_wordle(secret_word, wordlist):
@@ -267,22 +267,23 @@ def play_wordle(secret_word, wordlist):
                 play_again()
                 break
 
+
 def suggestions_only():
-    total_guesses = 6
     remaining_guesses = 6
     knowledge = default_knowledge()
 
     # starting welcome
     print("Welcome to Wordle Helper!")
     print("I help you guess what Wordle word is if it is " + str(WORD_LENGTH) + " letters long.")
-    attempts = ""
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
-        print("You will first your guess " + str(WORD_LENGTH) + " letters long to the fist question. Then the response the game gives you.")
+        print("You will first your guess " + str(
+            WORD_LENGTH) + " letters long to the fist question. Then the response the game gives you.")
 
         # request guess
         guess = str(input("Type your guess:")).lower()[:WORD_LENGTH]
-        print("Type the response you got in order. 'G' if in the right position, 'Y' yellow if in the word but not in the position, and 'R' if not in the word. Example: GRRYR")
+        print(
+            "Type the response you got in order. 'G' if in the right position, 'Y' yellow if in the word but not in the position, and 'R' if not in the word. Example: GRRYR")
         new_knowledge = str(input("Type the response you got:"))
         if len(guess) == WORD_LENGTH and len(new_knowledge) == WORD_LENGTH:
             for i in range(len(guess)):
@@ -290,9 +291,9 @@ def suggestions_only():
                 res = str(new_knowledge[i]).upper()
                 k = knowledge[str(i)]
                 if res == 'G':
-                    k[IN_POSITION] = c
                     if c not in knowledge[IN_WORD]:
                         knowledge[IN_WORD].append(c)
+                    k[IN_POSITION] = c
                 elif res == 'Y':
                     if c not in k[NOT_IN_POSITION]:
                         k[NOT_IN_POSITION].append(c)
@@ -325,14 +326,14 @@ def suggestions_only():
             print("try again. either your guess or feedback was the wrong length")
 
 
-
-
 def play_again():
     again = str(input("Play Again? (y/n)")).lower()[0]
     if again == "y":
         play_wordle(choose_word(WORDS), WORDS)
     else:
         print("bye!")
+
+
 if __name__ == "__main__":
     # Play wordle mode
 
