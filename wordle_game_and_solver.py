@@ -167,17 +167,8 @@ def suggestions_only():
 
             matches = WordleTools.get_possible_matches(knowledge, WORDS)
             total_matches = len(matches)
-            if total_matches < 1:
-                print("something went wrong. Start over")
-                break
-            print("There are " + str(len(matches)) + " possible matches.")
-            print(matches)
-            matches = WordleTools.get_possible_matches(knowledge, WORDS)
-            print("Total: " + str(len(matches)) + " " + str(matches))
-            if len(matches) > 5:
-                print("Suggested guess: " + WordleTools.get_suggestion(matches, WORDS))
-            else:
-                print("Suggested guess: " + WordleTools.get_suggestion(matches, matches))
+            print("Total: " + str(total_matches) + " " + str(matches))
+
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
                 if total_matches > 4000:
@@ -187,6 +178,7 @@ def suggestions_only():
                 else:
                     print("this may take some time")
                     print("Suggested guess: " + WordleTools.get_suggestion(matches, WORDS))
+
             remaining_guesses -= 1
         else:
             print("try again. either your guess or feedback was the wrong length")
