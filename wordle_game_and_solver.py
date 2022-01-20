@@ -1,7 +1,7 @@
 # Wordle Game and Solver
 # Name: Jon Paris
 # Collaborators: Joey Paris, Nathan Paris
-
+import copy
 import random
 from wordleTools import KNOWLEDGE, WordleTools
 
@@ -105,8 +105,8 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = WordleTools.get_possible_matches(knowledge, WORDS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
-            print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, matches, WORDS))
+            print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, WORDS))
+            print("Suggested guess: " + WordleTools.get_suggestion(copy.deepcopy(knowledge), WORDS))
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
@@ -166,14 +166,14 @@ def suggestions_only():
                     if c not in knowledge[KNOWLEDGE.NOT_IN_WORD]:
                         knowledge[KNOWLEDGE.NOT_IN_WORD].append(c)
 
-            matches = WordleTools.get_possible_matches(knowledge, WORDS)
+            matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), WORDS)
             total_matches = len(matches)
             print("Total: " + str(total_matches) + " " + str(matches))
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
+                print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, WORDS))
                 print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
-                print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, matches, WORDS))
 
             remaining_guesses -= 1
         else:
