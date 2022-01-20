@@ -1,4 +1,4 @@
-from random import sample
+import copy
 import time
 import datetime
 
@@ -38,38 +38,80 @@ class WordleTools:
         return matches
 
     @staticmethod
-    def get_suggestion(secret_word_options, guess_options):
-        # WIP use exclusion map and combine knowledge to figure out which words will increase knowledge the most
+    def get_suggestion(knowledge, guess_options):
         exclusions_by_guess = {}
-        total_matches = len(secret_word_options)
+        matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), guess_options)
+        total_matches = len(matches)
+        # once narrow ensure guess has a chance of being in the set.
+        if total_matches < 5:
+            guess_options = matches
+
+        guess_ct = len(guess_options)
+        search_scale = total_matches * total_matches * guess_ct
         count = 0
         start_time = time.time()
+        fast_suggest = WordleTools.get_suggestion_fast(knowledge, matches, guess_options)
+        if search_scale > 500000:
+            return fast_suggest
 
         for guess in guess_options:
-            exclusions_by_guess[guess] = 0
+            exclusions_by_guess[guess] = 0.0
 
-        sample_count = 200
-
-        if total_matches < 100:
-            sample_count = total_matches
-        for secret in sample(secret_word_options, sample_count):
-            count = WordleTools.status_time_estimate(count, start_time, total_matches)
+        for secret in matches:
+            # count = WordleTools.status_time_estimate(count, start_time, total_matches)
 
             for guess in guess_options:
-                for answer in secret_word_options:
-                    if not WordleTools.test_word_for_match(answer,
-                                                           WordleTools.update_knowledge(WordleTools.default_knowledge(),
-                                                                                        secret, guess)):
-                        exclusions_by_guess[guess] += 1 / total_matches
+                for answer in matches:
+                    test_knowledge = WordleTools.update_knowledge(copy.deepcopy(knowledge), secret, guess)
+                    if not WordleTools.test_word_for_match(answer, test_knowledge):
+                        exclusions_by_guess[guess] += 1.0
         # sort
-        suggested_guess = ""
-        max_excl = 0
+        suggested_guess = fast_suggest
+        max_excl = -1.0
         for g in exclusions_by_guess:
-            if exclusions_by_guess[g] > max_excl or not suggested_guess:
+            if exclusions_by_guess[g] > max_excl:
                 max_excl = exclusions_by_guess[g]
                 suggested_guess = g
 
         return suggested_guess
+
+    @staticmethod
+    def get_suggestion_fast(knowledge, matches, guess_options):
+        # get as much insight into the letters we don't know about that are in the remaining words
+        # exclude words that
+        letter_count = {}
+        focus_letter_count = {}
+        in_word_letters = knowledge[KNOWLEDGE.IN_WORD]
+        total_matches = len(matches)
+
+        for c in "qwertyuiopasdfghjklzxcvbnm":
+            letter_count[c] = 0.0
+            focus_letter_count[c] = 0.0
+        for word in matches:
+            for c in word:
+                letter_count[c] += 1.0
+                if c not in in_word_letters:
+                    focus_letter_count[c] += 1.0
+
+        max_cov = 0.0
+        suggested_guess = None
+        max_focus = 0.0
+        focus_suggested_word = None
+
+        for word in guess_options:
+            coverage = sum([letter_count[c] for c in set([c for c in word])])
+            focus_coverage = sum([focus_letter_count[c] for c in set([c for c in word])])
+            if coverage > max_cov:
+                max_cov = coverage
+                suggested_guess = word
+            if focus_coverage > max_focus:
+                max_focus = focus_coverage
+                focus_suggested_word = word
+
+        if focus_suggested_word and total_matches > 500:
+            return focus_suggested_word
+        else:
+            return suggested_guess
 
     @staticmethod
     def status_time_estimate(count, start_time, total_matches):
@@ -106,9 +148,11 @@ class WordleTools:
                     knowledge[KNOWLEDGE.IN_WORD].append(c)
                 if c not in k[KNOWLEDGE.NOT_IN_POSITION]:
                     k[KNOWLEDGE.NOT_IN_POSITION].append(c)
+                    # could optimize if also in word, then the match will have two of that letter
             else:
-                if c not in knowledge[KNOWLEDGE.NOT_IN_WORD]:
+                if c not in knowledge[KNOWLEDGE.NOT_IN_WORD] and c not in knowledge[KNOWLEDGE.IN_WORD]:
                     knowledge[KNOWLEDGE.NOT_IN_WORD].append(c)
+                # could optimize be removing words with 2+, of c if get back not in work when in word
         return knowledge
 
     @staticmethod

@@ -36,38 +36,37 @@ def choose_word(wordlist):
 def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
-    knowledge = WordleTools.default_knowledge()
 
-    def decorate_word_with_knowledge(knowledge, word):
+    def decorate_word_with_knowledge(know, word):
         decorated_word = ""
         for i in range(KNOWLEDGE.WORD_LENGTH):
             c = word[i]
-            k = knowledge[str(i)]
+            k = know[str(i)]
             if c == k[KNOWLEDGE.IN_POSITION]:
                 color = COLORS.GREEN
-            elif c in knowledge[KNOWLEDGE.IN_WORD]:
+            elif c in know[KNOWLEDGE.IN_WORD]:
                 color = COLORS.YELLOW
-            elif c in knowledge[KNOWLEDGE.NOT_IN_WORD]:
+            elif c in know[KNOWLEDGE.NOT_IN_WORD]:
                 color = COLORS.GREY
             else:
                 color = " "
             decorated_word += color + c + COLORS.SPACE_COLOR
         return decorated_word + "\n\n"
 
-    def show_decorated_keyboard(knowledge):
+    def show_decorated_keyboard(know):
         for c in 'qwertyuiopasdfghjklzxcvbnm':
             if c == 'a' or c == 'z':
                 print("\n")
             in_position = False
             for i in range(KNOWLEDGE.WORD_LENGTH):
-                k = knowledge[str(i)]
+                k = know[str(i)]
                 if c == k[KNOWLEDGE.IN_POSITION]:
                     in_position = True
             if in_position:
                 color = COLORS.GREEN
-            elif c in knowledge[KNOWLEDGE.IN_WORD]:
+            elif c in know[KNOWLEDGE.IN_WORD]:
                 color = COLORS.YELLOW
-            elif c in knowledge[KNOWLEDGE.NOT_IN_WORD]:
+            elif c in know[KNOWLEDGE.NOT_IN_WORD]:
                 color = COLORS.GREY
             else:
                 color = COLORS.BLACK
@@ -78,6 +77,8 @@ def play_wordle(secret_word, wordlist):
     print("Welcome to Wordle!")
     print("I am thinking of a word that is " + str(KNOWLEDGE.WORD_LENGTH) + " letters long.")
     attempts = ""
+    knowledge = WordleTools.default_knowledge()
+
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
         print("Type a " + str(
@@ -104,10 +105,8 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = WordleTools.get_possible_matches(knowledge, WORDS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            if len(matches) > 5:
-                print("Suggested guess: " + WordleTools.get_suggestion(matches, WORDS))
-            else:
-                print("Suggested guess: " + WordleTools.get_suggestion(matches, matches))
+            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
+            print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, matches, WORDS))
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
@@ -141,8 +140,10 @@ def suggestions_only():
 
         # request guess
         guess = str(input("Type your guess:")).lower()[:KNOWLEDGE.WORD_LENGTH]
-        print(
-            "Type the response you got in order. 'G' if in the right position, 'Y' yellow if in the word but not in the position, and 'R' if not in the word. Example: GRRYR")
+        print("Type the response you got in order.")
+        print("'G' if in the right position")
+        print("'Y' yellow if in the word but not in the position, and ")
+        print("'R' if not in the word. Example: GRRYR")
         new_knowledge = str(input("Type the response you got:")).upper()
         if len(guess) == KNOWLEDGE.WORD_LENGTH and len(new_knowledge) == KNOWLEDGE.WORD_LENGTH:
             if new_knowledge == "GGGGG":
@@ -171,13 +172,8 @@ def suggestions_only():
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                if total_matches > 4000:
-                    print("Try 'argue'")
-                elif total_matches < 5:
-                    print("Suggested guess: " + WordleTools.get_suggestion(matches, matches))
-                else:
-                    print("this may take some time")
-                    print("Suggested guess: " + WordleTools.get_suggestion(matches, WORDS))
+                print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
+                print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, matches, WORDS))
 
             remaining_guesses -= 1
         else:
