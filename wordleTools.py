@@ -181,10 +181,7 @@ class WordleTools:
         # 500 is a guess. might be worth focusing to a lower word count
 
         match_map = WordleTools.create_match_map(matches, [focus_suggested_guess, suggested_guess], knowledge)
-        """
-        print ("focus guess: " + focus_suggested_guess + " reduce to ~" + str(match_map[focus_suggested_guess]["average_match_count"]) + " options")
-        print("try for guess: " + suggested_guess + " reduce to ~" + str(match_map[suggested_guess]["average_match_count"]) + " options")
-"""
+
         narrow_over_try = 1/match_map[focus_suggested_guess]["average_match_count"] - 1/match_map[suggested_guess]["average_match_count"] - 1/total_matches
         if focus_suggested_guess and narrow_over_try > 0:
             suggested_guess = focus_suggested_guess
