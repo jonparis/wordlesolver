@@ -105,8 +105,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = WordleTools.get_possible_matches(knowledge, WORDS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, WORDS))
-            print("Suggested guess: " + WordleTools.get_suggestion(copy.deepcopy(knowledge), WORDS))
+            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
@@ -172,7 +171,6 @@ def suggestions_only():
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("alt fast option:" + WordleTools.get_suggestion_fast(knowledge, WORDS))
                 print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
 
             remaining_guesses -= 1
@@ -191,6 +189,9 @@ def play_again():
 if __name__ == "__main__":
     # Play wordle mode
     WORDS = load_words()
+    """ use match_map to create lookup table for solver """
+    #
+    # MATCH_MAP = WordleTools.create_match_map(WORDS, WORDS, WordleTools.default_knowledge())
     print("do you want to:")
     print("A. Play Wordle here!")
     print("B. Get help playing wordle somewhere else.")
