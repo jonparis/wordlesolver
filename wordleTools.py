@@ -13,7 +13,7 @@ class KNOWLEDGE:
 
 
 class WordleTools:
-    DEPTH_OF_SUGGESTION = 10**7 # (bigger numbers take longer)
+    DEPTH_OF_SUGGESTION = 10**8 # (bigger numbers take longer)
     SHOW_TIMER = True
     LOOK_FOR_MATCHES_ONLY = 2 # at what match count do you prioritize picking the right match vs eliminating options
 
