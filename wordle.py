@@ -6,7 +6,8 @@ import random
 from wordleTools import KNOWLEDGE, WordleTools
 
 WORDLIST_FILENAME = "words.txt"
-
+ANSWERS_FILE = "words-answers.txt"
+GUESSES_FILE = "words-guesses.txt"
 
 class COLORS:
     GREEN = " \033[0;30;42m "
@@ -15,10 +16,9 @@ class COLORS:
     GREY = " \033[0;30;47m "
     SPACE_COLOR = " \033[0;37;48m"
 
-
-def load_words():
+def load_words(file_name):
     print("Loading word list...")
-    infile = open(WORDLIST_FILENAME, 'r')
+    infile = open(file_name, 'r')
     line = infile.readline()
     wordlist = line.split()
     chosen_word_length = []
@@ -99,13 +99,13 @@ def play_wordle(secret_word, wordlist):
 
         # if asking for potential matches show list
         if guess == "!":
-            matches = WordleTools.get_possible_matches(knowledge, WORDS)
+            matches = WordleTools.get_possible_matches(knowledge, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
-            matches = WordleTools.get_possible_matches(knowledge, WORDS)
+            matches = WordleTools.get_possible_matches(knowledge, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
+            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS))
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
@@ -165,13 +165,13 @@ def suggestions_only():
                     if c not in knowledge[KNOWLEDGE.NOT_IN_WORD]:
                         knowledge[KNOWLEDGE.NOT_IN_WORD].append(c)
 
-            matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), WORDS)
+            matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), ANSWERS)
             total_matches = len(matches)
             print("Total: " + str(total_matches) + " " + str(matches))
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS))
+                print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS))
 
             remaining_guesses -= 1
         else:
@@ -181,14 +181,15 @@ def suggestions_only():
 def play_again():
     again = str(input("Play Again? (y/n)")).lower()[0]
     if again == "y":
-        play_wordle(choose_word(WORDS), WORDS)
+        play_wordle(choose_word(ANSWERS), WORDS)
     else:
         print("bye!")
 
 
 if __name__ == "__main__":
     # Play wordle mode
-    WORDS = load_words()
+    WORDS = load_words(GUESSES_FILE)
+    ANSWERS = load_words(ANSWERS_FILE)
     """ use match_map to create lookup table for solver """
     #
     # MATCH_MAP = WordleTools.create_match_map(WORDS, WORDS, WordleTools.default_knowledge())
@@ -198,6 +199,6 @@ if __name__ == "__main__":
 
     menu = str(input(" Choose/type A or B:")).lower()
     if menu == 'a':
-        play_wordle(choose_word(WORDS), WORDS)
+        play_wordle(choose_word(ANSWERS), WORDS)
     else:
         suggestions_only()

@@ -13,7 +13,7 @@ class KNOWLEDGE:
 
 
 class WordleTools:
-    DEPTH_OF_SUGGESTION = 10**8 # (bigger numbers take longer)
+    DEPTH_OF_SUGGESTION = 10**6 # (bigger numbers take longer)
     SHOW_TIMER = True
     LOOK_FOR_MATCHES_ONLY = 2 # at what match count do you prioritize picking the right match vs eliminating options
 
@@ -105,9 +105,9 @@ class WordleTools:
         return matches
 
     @staticmethod
-    def get_suggestion(knowledge, guess_options):
+    def get_suggestion(knowledge, guess_options, answer_options):
         exclusions_by_guess = {}
-        matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), guess_options)
+        matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), answer_options)
         total_matches = len(matches)
         # once narrow ensure guess has a chance of being in the set.
         if total_matches < 5:
@@ -117,7 +117,8 @@ class WordleTools:
         search_scale = total_matches * total_matches * guess_ct
         count = 0
         start_time = time.time()
-        fast_suggest = WordleTools.get_suggestion_fast(knowledge, guess_options)
+        fast_suggest = WordleTools.get_suggestion_fast(knowledge, guess_options, answer_options)
+        print("quick suggestion: " + fast_suggest)
         if search_scale > WordleTools.DEPTH_OF_SUGGESTION:
             return fast_suggest
 
@@ -140,14 +141,17 @@ class WordleTools:
         if narrow_over_try > 0:
             suggested_guess = suggested_guess_maybe_matching
 
+        print("avg left after guess (lower is better): " + fast_suggest + " (" + str(round(match_map[fast_suggest]["average_match_count"], 2)) + ")")
+
+        print("avg left after guess (lower is better): " + suggested_guess + " (" + str(round(match_map[suggested_guess]["average_match_count"], 2)) + ")")
         return suggested_guess
 
     @staticmethod
-    def get_suggestion_fast(knowledge, guess_options):
+    def get_suggestion_fast(knowledge, guess_options, answer_options):
         # get as much insight into the letters we don't know about that are in the remaining words
         # exclude words that
 
-        matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), guess_options)
+        matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), answer_options)
         letter_count = {}
         focus_letter_count = {}
         in_word_letters = knowledge[KNOWLEDGE.IN_WORD]
@@ -167,7 +171,7 @@ class WordleTools:
         max_focus = 0.0
         focus_suggested_guess = guess_options[0]
 
-        if total_matches < 5:
+        if total_matches < 2:
             guess_options = matches
         for word in guess_options:
             coverage = sum([letter_count[c] for c in set([c for c in word])])
