@@ -201,7 +201,6 @@ class WordleTools:
                     suggested_guess_maybe_matching = guess
                     avg_exg_maybe_match = match_map[guess]
             suggested_guess = suggested_guess_matching
-
             narrow_over_try = 1 / avg_exg_maybe_match - 1 / avg_exc_match - 1 / total_matches
             if narrow_over_try > 0:
                 suggested_guess = suggested_guess_maybe_matching

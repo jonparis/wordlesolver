@@ -8,7 +8,6 @@ from wordleTools import KNOWLEDGE, WordleTools
 WORDLIST_FILENAME = "words.txt"
 ANSWERS_FILE = "words-answers.txt"
 GUESSES_FILE = "words-guesses.txt"
-KNOWLEDGE_MAP = "knowledge_map.txt"
 
 
 class COLORS:
@@ -50,7 +49,7 @@ def auto_play():
             try_count += 1
             total_guesses += 1
             if try_count == 1:
-                suggestion = "salet"  #force first word
+                suggestion = "salet"  # force first word
             else:
                 suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True)
             if suggestion == secret:
@@ -134,6 +133,7 @@ def play_wordle(secret_word, wordlist):
             matches = WordleTools.get_possible_matches(knowledge, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
             print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True))
+
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
@@ -203,7 +203,6 @@ def suggestions_only():
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
                 print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True))
-
             remaining_guesses -= 1
         else:
             print("try again. either your guess or feedback was the wrong length")
@@ -234,5 +233,3 @@ if __name__ == "__main__":
         play_wordle(choose_word(ANSWERS), WORDS)
     elif menu == 'c':
         auto_play()  # todo can do more here
-    else:
-        suggestions_only()
