@@ -49,7 +49,10 @@ def auto_play():
         while suggestion != secret:
             try_count += 1
             total_guesses += 1
-            suggestion = WordleTools.get_suggestion_new(knowledge, WORDS, ANSWERS, True)
+            if try_count == 1:
+                suggestion = "salet"  #force first word
+            else:
+                suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True)
             if suggestion == secret:
                 print(str(try_count) + " guesses! " + secret)
                 break
@@ -130,7 +133,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = WordleTools.get_possible_matches(knowledge, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + WordleTools.get_suggestion_new(knowledge, WORDS, ANSWERS, True))
+            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True))
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
         elif guess not in wordlist:
@@ -188,7 +191,10 @@ def suggestions_only():
                         knowledge[KNOWLEDGE.IN_WORD].append(c)
                 else:
                     if c not in knowledge[KNOWLEDGE.NOT_IN_WORD]:
-                        knowledge[KNOWLEDGE.NOT_IN_WORD].append(c)
+                        if c not in knowledge[KNOWLEDGE.IN_WORD]:
+                            knowledge[KNOWLEDGE.NOT_IN_WORD].append(c)
+                        else:
+                            k[KNOWLEDGE.NOT_IN_POSITION].append(c)
 
             matches = WordleTools.get_possible_matches(copy.deepcopy(knowledge), ANSWERS)
             total_matches = len(matches)
@@ -196,7 +202,7 @@ def suggestions_only():
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("Suggested guess: " + WordleTools.get_suggestion_new(knowledge, WORDS, ANSWERS, True))
+                print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True))
 
             remaining_guesses -= 1
         else:

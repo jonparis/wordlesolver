@@ -84,6 +84,7 @@ class MapsDB:
 
 class WordleTools:
     DEPTH_OF_SUGGESTION = 10 ** 100  # (bigger numbers take longer)
+    WAIT_FOR_BEST_SUGGESTION = 10 ** 10  # time in seconds to wait for best guess
     SHOW_TIMER = False  # toggle if you want to see what is taking so long
     LOOK_FOR_MATCHES_ONLY = 2  # at what match count do you prioritize picking the right match vs eliminating options
 
@@ -112,12 +113,17 @@ class WordleTools:
         match_map = {}
         total_words = len(answers)
         counter = 0
+        seconds_left = {"count": 1, "seconds_left": -1}
         start_time = time.time()
         if WordleTools.SHOW_TIMER:
             print("start timer")
         save_knowledge_map = False
         for guess in guesses:
             match_map[guess] = 0.0
+
+            seconds_left = WordleTools.get_time_estimate(seconds_left["count"], start_time, len(guesses))
+            if seconds_left["seconds_left"] > WordleTools.WAIT_FOR_BEST_SUGGESTION:
+                return False
             if WordleTools.SHOW_TIMER:
                 counter = WordleTools.status_time_estimate(counter, start_time, len(guesses), "M map")
 
@@ -165,7 +171,7 @@ class WordleTools:
         return matches
 
     @staticmethod
-    def get_suggestion_new(knowledge, guess_options, answer_options, save_it):
+    def get_suggestion(knowledge, guess_options, answer_options, save_it):
         maps = MapsDB()
         k_hash = WordleTools.dict_hash(knowledge)  # get hashkey for suggestion map
         existing_suggestion_knowledge = maps.get_suggestion(k_hash)
@@ -178,6 +184,8 @@ class WordleTools:
             suggested_guess = matches[0]
         else:
             match_map = WordleTools.create_match_map(matches, guess_options, knowledge, save_it)
+            if match_map is False:
+                return WordleTools.get_suggestion_fast(knowledge, guess_options, matches)
 
             total_matches = len(matches)
             avg_exg_maybe_match = total_matches
@@ -271,23 +279,40 @@ class WordleTools:
         # END TIMER CODE
 
     @staticmethod
+    def get_time_estimate(count, start_time, total_count):
+        time_now = time.time()
+        elapsed_time = int(time_now - start_time)
+
+        if total_count == 0:
+            return 0
+        progress = count / total_count
+        progress_to_finish = 1 - count / total_count
+
+        seconds_left = -1
+        if count > 1:
+            seconds_left = int(elapsed_time * progress_to_finish / progress)
+        count += 1
+        return {"count": count, "seconds_left": seconds_left}
+
+    @staticmethod
     def update_knowledge(knowledge, secret_word, guess):
+        guess = str(guess).lower()  # make sure guess is in lower case
         for i in range(KNOWLEDGE.WORD_LENGTH):
             k = knowledge[str(i)]
             c = guess[i]
             if c == secret_word[i]:
                 if c not in knowledge[KNOWLEDGE.IN_WORD]:
                     knowledge[KNOWLEDGE.IN_WORD].append(c)
-                k[KNOWLEDGE.IN_POSITION] = c
+                knowledge[str(i)][KNOWLEDGE.IN_POSITION] = c
             elif c in secret_word:
                 if c not in knowledge[KNOWLEDGE.IN_WORD]:
                     knowledge[KNOWLEDGE.IN_WORD].append(c)
                 if c not in k[KNOWLEDGE.NOT_IN_POSITION]:
-                    k[KNOWLEDGE.NOT_IN_POSITION].append(c)
-                    # could optimize if also in word, then the match will have two of that letter
+                    knowledge[str(i)][KNOWLEDGE.NOT_IN_POSITION].append(c)
             else:
-                if c not in knowledge[KNOWLEDGE.NOT_IN_WORD] and c not in knowledge[KNOWLEDGE.IN_WORD]:
-                    knowledge[KNOWLEDGE.NOT_IN_WORD].append(c)
+                if c not in knowledge[KNOWLEDGE.NOT_IN_WORD]:
+                    if c not in knowledge[KNOWLEDGE.IN_WORD]:
+                        knowledge[KNOWLEDGE.NOT_IN_WORD].append(c)
                 # could optimize be removing words with 2+, of c if get back not in work when in word
         return WordleTools.standardize_knowledge(knowledge)
 
