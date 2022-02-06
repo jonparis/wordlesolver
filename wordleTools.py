@@ -84,7 +84,7 @@ class MapsDB:
 
 class WordleTools:
     DEPTH_OF_SUGGESTION = 10 ** 100  # (bigger numbers take longer)
-    WAIT_FOR_BEST_SUGGESTION = 10 ** 10  # time in seconds to wait for best guess
+    WAIT_FOR_BEST_SUGGESTION = 5  # time in seconds to wait for best guess
     SHOW_TIMER = False  # toggle if you want to see what is taking so long
     LOOK_FOR_MATCHES_ONLY = 2  # at what match count do you prioritize picking the right match vs eliminating options
 
@@ -162,6 +162,7 @@ class WordleTools:
                 return False
         return True
 
+
     @staticmethod
     def get_possible_matches(knowledge, possible_words):
         matches = []
@@ -170,8 +171,9 @@ class WordleTools:
                 matches.append(word)
         return matches
 
+
     @staticmethod
-    def get_suggestion(knowledge, guess_options, answer_options, save_it):
+    def get_suggestion(knowledge, guess_options, answer_options):
         maps = MapsDB()
         k_hash = WordleTools.dict_hash(knowledge)  # get hashkey for suggestion map
         existing_suggestion_knowledge = maps.get_suggestion(k_hash)
@@ -183,7 +185,7 @@ class WordleTools:
         if len(matches) < 3:
             suggested_guess = matches[0]
         else:
-            match_map = WordleTools.create_match_map(matches, guess_options, knowledge, save_it)
+            match_map = WordleTools.create_match_map(matches, guess_options, knowledge, True)
             if match_map is False:
                 return WordleTools.get_suggestion_fast(knowledge, guess_options, matches)
 
@@ -205,8 +207,7 @@ class WordleTools:
             if narrow_over_try > 0:
                 suggested_guess = suggested_guess_maybe_matching
 
-        if save_it:
-            maps.insert_suggestion(k_hash, suggested_guess)
+        maps.insert_suggestion(k_hash, suggested_guess)
         return suggested_guess
 
     @staticmethod

@@ -34,13 +34,17 @@ def load_words(file_name):
 def choose_word(wordlist):
     return random.choice(wordlist)
 
+def populate_db():
+    for word in ['raise','salet','reast','crate','trace','slate','crane','arose','arise','argue','ocean']:
+        print("First Guess: " + word)
+        auto_play(word)
 
-def auto_play():
+def auto_play(first_guess):
     total_secrets = len(ANSWERS)
     total_guesses = 0
     print("Starting AutoPlay This could take a while!")
     for secret in ANSWERS:
-        print("Target: " + secret)
+        print("Target: " + secret,end="\r")
         suggestion = None
         knowledge = WordleTools.default_knowledge()
         try_count = 0
@@ -49,9 +53,9 @@ def auto_play():
             try_count += 1
             total_guesses += 1
             if try_count == 1:
-                suggestion = "salet"  # force first word
+                suggestion = first_guess  # force first word
             else:
-                suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True)
+                suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS)
             if suggestion == secret:
                 print(str(try_count) + " guesses! " + secret)
                 break
@@ -132,7 +136,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = WordleTools.get_possible_matches(knowledge, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True))
+            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS))
 
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
@@ -202,7 +206,7 @@ def suggestions_only():
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS, True))
+                print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS))
             remaining_guesses -= 1
         else:
             print("try again. either your guess or feedback was the wrong length")
@@ -227,9 +231,12 @@ if __name__ == "__main__":
     print("A. Play Wordle here!")
     print("B. Get help playing wordle somewhere else.")
     print("C. Auto Play to test solver!")
+    print("D. Populate DB!")
 
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
         play_wordle(choose_word(ANSWERS), WORDS)
     elif menu == 'c':
-        auto_play()  # todo can do more here
+        auto_play('salet')  # todo can do more here
+    elif menu == 'd':
+        populate_db()
