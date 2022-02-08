@@ -19,11 +19,13 @@ class MapsDB:
 
     def __init__(self):
         self.db_conn = sqlite3.connect('wordle.db')
-        self.db_conn.execute('DROP TABLE IF EXISTS SMAP_TABLE;') ## clean out previous suggestions
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP_TABLE (ID PRIMARY KEY NOT NULL, KMAP TEXT NOT NULL);')
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP2_TABLE (ID PRIMARY KEY NOT NULL, KMAP2 TEXT);')
+        
+        """ todo remove and drop data from SMAP and MMAP if able to make new WIP suggestion tools perform"""
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SMAP_TABLE (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS MMAP_TABLE (ID PRIMARY KEY NOT NULL, MMAP TEXT);')
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP2_TABLE (ID PRIMARY KEY NOT NULL, KMAP2 TEXT);')
 
 
 
@@ -50,6 +52,20 @@ class MapsDB:
     def get_suggestion(self, k_hash):
         db_conn = self.db_conn
         cursor = db_conn.execute("SELECT SUGGESTION FROM SMAP_TABLE WHERE ID = '" + k_hash + "'")
+        suggestion = cursor.fetchone()
+        if suggestion:
+            return suggestion[0]
+        else:
+            return False
+
+    def insert_suggestion2(self, k_hash, suggestion):
+        db_conn = self.db_conn
+        db_conn.execute("INSERT OR REPLACE INTO SUGGESTIONS (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
+        db_conn.commit()
+
+    def get_suggestion2(self, k_hash):
+        db_conn = self.db_conn
+        cursor = db_conn.execute("SELECT SUGGESTION FROM SUGGESTIONS WHERE ID = '" + k_hash + "'")
         suggestion = cursor.fetchone()
         if suggestion:
             return suggestion[0]
@@ -280,13 +296,13 @@ class WordleTools:
     def get_suggestion_wip(knowledge, guess_options, answer_options):
         maps = MapsDB()
         k_hash = WordleTools.dict_hash(knowledge)  # get hashkey for suggestion map
-        existing_suggestion = maps.get_suggestion(k_hash)
+        existing_suggestion = maps.get_suggestion2(k_hash)
         if existing_suggestion:
             return existing_suggestion
 
         suggestion_obj = WordleTools.guess_to_solve(knowledge, guess_options, answer_options, depth = 0)
         suggested_guess = suggestion_obj["g"]
-        maps.insert_suggestion(k_hash, suggested_guess)
+        maps.insert_suggestion2(k_hash, suggested_guess)
         return suggested_guess
 
 
