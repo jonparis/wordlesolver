@@ -35,16 +35,16 @@ def choose_word(wordlist):
     return random.choice(wordlist)
 
 def populate_db():
-    for word in ['raise','salet','reast','crate','trace','slate','crane','arose','arise','argue','ocean']:
-        print("First Guess: " + word)
+    #for word in WORDS:
+    for word in ["salet", "arose", "arise", "raise", "crate", "trace", "slate", "crane", "argue", "ocean"]:
+        print("starting word: " + word)
         auto_play(word)
 
 def auto_play(first_guess):
     total_secrets = len(ANSWERS)
     total_guesses = 0
-    print("Starting AutoPlay This could take a while!")
     for secret in ANSWERS:
-        print("Target: " + secret,end="\r")
+        print("\r","Target: " + secret,end="")
         suggestion = None
         knowledge = WordleTools.default_knowledge()
         try_count = 0
@@ -57,11 +57,11 @@ def auto_play(first_guess):
             else:
                 suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS)
             if suggestion == secret:
-                print(str(try_count) + " guesses! " + secret)
+                print("\r", str(try_count) + " guesses! " + secret, end="")
                 break
             else:
                 knowledge = WordleTools.update_knowledge(knowledge, secret, suggestion)
-    print("Average Guesses: " + str(round(total_guesses / total_secrets, 3)))
+    print("\r","Average Guesses: " + str(round(total_guesses / total_secrets, 3)),end="\n")
 
 
 def play_wordle(secret_word, wordlist):
@@ -136,7 +136,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = WordleTools.get_possible_matches(knowledge, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS))
+            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, matches))
 
         elif len(guess) != KNOWLEDGE.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
