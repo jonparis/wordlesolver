@@ -174,18 +174,17 @@ class WordleTools:
                 k = WordleTools.update_knowledge(knowledge, secret_word, guess)
                 k_hash = WordleTools.dict_hash(k)
 
-                match_count = False
-                if k_hash in knowledge_map:
+                if guess == secret:
+                    match_count = 0
+                elif k_hash in knowledge_map:
                     match_count = knowledge_map[k_hash]
-                if not match_count:
+                else:
                     matches = WordleTools.get_possible_matches(k, answers)
                     match_count = len(matches)
-                    knowledge_map[k_hash] = match_count
-                    save_knowledge_map = True
+                knowledge_map[k_hash] = match_count
                 match_map[guess] += match_count / total_words
-        if save_it and save_knowledge_map:
-            maps.insert_batch_kmap = knowledge_map
         
+        maps.insert_batch_kmap = knowledge_map
         if save_it:
             maps.insert_mmap(origin_k_hash, match_map)
 
@@ -280,7 +279,10 @@ class WordleTools:
                     k = WordleTools.update_knowledge(knowledge, secret, guess)
                     k_hash = WordleTools.dict_hash(k)
 
-                    if k_hash in knowledge_map:
+
+                    if guess == secret:
+                        best_guess_to_solve = {"g": guess, "c": 0}
+                    elif k_hash in knowledge_map:
                         best_guess_to_solve = knowledge_map[k_hash]
                     else: 
                         m = WordleTools.get_possible_matches(k, matches)
@@ -290,14 +292,16 @@ class WordleTools:
                     average_guesses_to_solve += best_guess_to_solve["c"] / total_matches
                 if depth == 0:
                     if index == 0:
-                        print("guess    matches     agts    #")
-                    print("'" + guess + "'  " + format(sorted_mm[index][1], '.3f') + "  " + format(average_guesses_to_solve, '.3f') + " " + str(index))
+                        print("")
+                        print("guess   matches    agts    #")
+                    print(guess + "    " + format(sorted_mm[index][1], '.3f') + "    " + format(average_guesses_to_solve + 1, '.3f') + "     " + str(index))
+                average_guesses_to_solve += 1  # need to add one since this is the average remaining guesses after first guess
                 if not best_ave_to_solve or average_guesses_to_solve < best_ave_to_solve:
                     guess_compare_counter = 0  #reset guess compare counter if best guess found
                     best_ave_to_solve = average_guesses_to_solve
                     best_guess = guess
             
-            knowledge_map[origin_k_hash] = {"g": best_guess, "c": best_ave_to_solve + 1}
+            knowledge_map[origin_k_hash] = {"g": best_guess, "c": best_ave_to_solve}
             maps.insert_batch_kmap2 = knowledge_map
             return knowledge_map[origin_k_hash]
 
@@ -325,7 +329,7 @@ class WordleTools:
     @staticmethod
     def get_suggestion(knowledge, guess_options, answer_options):
         # change to redirect to right suggestion solver
-        return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
+        return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
 
     @staticmethod
     def get_suggestion_stable(knowledge, guess_options, answer_options):
@@ -424,14 +428,10 @@ class WordleTools:
             time_left = int(elapsed_time * progress_to_finish / progress)
             time_left_str = str(datetime.timedelta(seconds=time_left))
             if time_left > 10:
-                print("\r", description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
+                print(description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
                                                                         str(datetime.timedelta(
                                                                             seconds=elapsed_time)),
                                                                         time_left_str), end="\r")
-        
-        else: 
-            print('...')
-
         count += 1
         return count
         # END TIMER CODE
