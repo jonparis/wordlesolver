@@ -44,7 +44,7 @@ def auto_play(first_guess):
     total_secrets = len(ANSWERS)
     total_guesses = 0
     for secret in ANSWERS:
-        print("\r","Target: " + secret,end="")
+        #print("\r\033[K","Target: " + secret,end="")
         suggestion = None
         knowledge = WordleTools.default_knowledge()
         try_count = 0
@@ -57,11 +57,11 @@ def auto_play(first_guess):
             else:
                 suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS)
             if suggestion == secret:
-                print("\r", str(try_count) + " guesses! " + secret, end="")
+                print("\r\033[K", str(try_count) + " guesses! " + secret, end="\n")
                 break
             else:
                 knowledge = WordleTools.update_knowledge(knowledge, secret, suggestion)
-    print("\r","Average Guesses: " + str(round(total_guesses / total_secrets, 3)),end="\n")
+    print("\r\033[K","first guess " + first_guess + " average guesses: " + str(round(total_guesses / total_secrets, 3)),end="\n")
 
 
 def play_wordle(secret_word, wordlist):

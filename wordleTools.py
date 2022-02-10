@@ -21,17 +21,19 @@ class MapsDB:
         self.db_conn = sqlite3.connect('wordle.db')
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP_TABLE (ID PRIMARY KEY NOT NULL, KMAP TEXT NOT NULL);')
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP2_TABLE (ID PRIMARY KEY NOT NULL, KMAP2 TEXT);')
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP4_TABLE (ID PRIMARY KEY NOT NULL, KMAP TEXT);')
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS SMAP_TABLE (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
 
         """ todo remove and drop data from SMAP and MMAP if able to make new WIP suggestion tools perform"""
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SMAP_TABLE (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS MMAP_TABLE (ID PRIMARY KEY NOT NULL, MMAP TEXT);')
-
-
+        self.db_conn.execute('DROP TABLE IF EXISTS KMAP3_TABLE;')
+        self.db_conn.execute('DROP TABLE IF EXISTS SUGGESTIONS3;')
 
     def insert_mmap(self, k_hash, mmap):
         db_conn = self.db_conn
         mmap_json = json.dumps(mmap)
+        print("save mmap" + str(mmap_json)[:20])
         db_conn.execute("INSERT OR REPLACE INTO MMAP_TABLE (ID, MMAP) VALUES ('" + k_hash + "', '" + mmap_json + "')")
         db_conn.commit()
 
@@ -40,10 +42,9 @@ class MapsDB:
         cursor = db_conn.execute("SELECT MMAP FROM MMAP_TABLE WHERE ID = '" + k_hash + "'")
         mmap = cursor.fetchone()
         if mmap:
-            json.loads(mmap[0])
+            return json.loads(mmap[0])
         else:
             return False
-
 
     def delete_mmap(self, k_hash):
         db_conn = self.db_conn
@@ -52,6 +53,7 @@ class MapsDB:
         cursor.execute(sql, (k_hash,))
         db_conn.commit()
 
+    # stable suggestion get/set
     def insert_suggestion(self, k_hash, suggestion):
         db_conn = self.db_conn
         db_conn.execute("INSERT OR REPLACE INTO SMAP_TABLE (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
@@ -60,20 +62,6 @@ class MapsDB:
     def get_suggestion(self, k_hash):
         db_conn = self.db_conn
         cursor = db_conn.execute("SELECT SUGGESTION FROM SMAP_TABLE WHERE ID = '" + k_hash + "'")
-        suggestion = cursor.fetchone()
-        if suggestion:
-            return suggestion[0]
-        else:
-            return False
-
-    def insert_suggestion2(self, k_hash, suggestion):
-        db_conn = self.db_conn
-        db_conn.execute("INSERT OR REPLACE INTO SUGGESTIONS (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
-        db_conn.commit()
-
-    def get_suggestion2(self, k_hash):
-        db_conn = self.db_conn
-        cursor = db_conn.execute("SELECT SUGGESTION FROM SUGGESTIONS WHERE ID = '" + k_hash + "'")
         suggestion = cursor.fetchone()
         if suggestion:
             return suggestion[0]
@@ -89,7 +77,6 @@ class MapsDB:
         db_conn.execute(sql_statement)
         db_conn.commit()
 
-    # noinspection PyTypeChecker
     def g_kmap_all(self):
         db_conn = self.db_conn
         cursor = db_conn.execute("SELECT * FROM KMAP_TABLE")
@@ -99,9 +86,24 @@ class MapsDB:
         else:
             return False
 
-    def insert_batch_kmap2(self, kmap_dict):
+    # wip suggestion get/set
+    def insert_suggestion2(self, k_hash, suggestion):
         db_conn = self.db_conn
-        sql_statement = "INSERT OR REPLACE INTO KMAP2_TABLE (ID, KMAP2) VALUES "
+        db_conn.execute("INSERT OR REPLACE INTO SUGGESTIONS (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
+        db_conn.commit()
+
+    def get_suggestion2(self, k_hash):
+        db_conn = self.db_conn
+        cursor = db_conn.execute("SELECT SUGGESTION FROM SUGGESTIONS WHERE ID = '" + k_hash + "'")
+        suggestion = cursor.fetchone()
+        if suggestion:
+            return suggestion[0]
+        else:
+            return False
+
+    def insert_batch_kmap4(self, kmap_dict):
+        db_conn = self.db_conn
+        sql_statement = "INSERT OR REPLACE INTO KMAP4_TABLE (ID, KMAP) VALUES "
         for key, value in kmap_dict.items():
             sql_statement += '("' + key + '", "' + value + '"),'
         sql_statement = sql_statement[:-1] + ";"
@@ -109,9 +111,9 @@ class MapsDB:
         db_conn.commit()
 
     # noinspection PyTypeChecker
-    def g_kmap2_all(self):
+    def g_kmap4_all(self):
         db_conn = self.db_conn
-        cursor = db_conn.execute("SELECT * FROM KMAP2_TABLE")
+        cursor = db_conn.execute("SELECT * FROM KMAP4_TABLE")
         kmap_all = cursor.fetchall()
         if kmap_all:
             return json.load(kmap_all)
@@ -125,7 +127,7 @@ class MapsDB:
 class WordleTools:
     DEPTH_OF_SUGGESTION = 10 ** 100  # (bigger numbers take longer)
     WAIT_FOR_BEST_SUGGESTION = 50000  # time in seconds to wait for best guess
-    SHOW_TIMER = True  # toggle if you want to see what is taking so long
+    SHOW_TIMER = False  # toggle if you want to see what is taking so long
     LOOK_FOR_MATCHES_ONLY = 2  # at what match count do you prioritize picking the right match vs eliminating options
 
     @staticmethod
@@ -147,15 +149,18 @@ class WordleTools:
     def create_match_map(answers, guesses, knowledge, save_it):
         maps = MapsDB()
         origin_k_hash = WordleTools.dict_hash(knowledge)
-        mmap = maps.get_mmap(origin_k_hash)
-        if not mmap: 
-            mmap = {}
+        # may eventually delete. main value is allows to pick-up faster where you left off and save between
+        # suggest stable and suggest wip
+        match_map = maps.get_mmap(origin_k_hash)
+        if match_map:
+            return match_map      
+        match_map = {}
+
 
         knowledge_map = maps.g_kmap_all()
         if not knowledge_map:
             knowledge_map = {}
 
-        match_map = {}
         total_words = len(answers)
         counter = 0
         seconds_left = {"count": 1, "seconds_left": -1}
@@ -174,7 +179,7 @@ class WordleTools:
                 k = WordleTools.update_knowledge(knowledge, secret_word, guess)
                 k_hash = WordleTools.dict_hash(k)
 
-                if guess == secret:
+                if guess == secret_word:
                     match_count = 0
                 elif k_hash in knowledge_map:
                     match_count = knowledge_map[k_hash]
@@ -247,20 +252,20 @@ class WordleTools:
 
             for index in range(total_matches):
                 guess = matches[index]
-                if guess in match_map and round(match_map[guess], 5) == 1: 
-                    return {"g": guess, "c": 1.5, "d" : depth}
+                if guess in match_map and round(match_map[guess], 7) == 1: 
+                    return {"g": guess, "c": 2 - 1/total_matches, "d" : depth}
 
             non_matching_guesses = list(set(guess_options) - set(matches))
             for index in range(len(non_matching_guesses)):
                 guess = non_matching_guesses[index]
-                if guess in match_map and round(match_map[guess], 5) == 1:
+                if guess in match_map and round(match_map[guess], 7) == 1:
                     return {"g": guess, "c": 2, "d": depth}
 
             """ 
                 Now recursively find the best average guess. 
             """
             maps = MapsDB()
-            knowledge_map = maps.g_kmap2_all()
+            knowledge_map = maps.g_kmap4_all()
             if not knowledge_map:
                 knowledge_map = {}
             
@@ -274,35 +279,35 @@ class WordleTools:
                 if guess_compare_counter > TEST_GUESSES:
                     break
                 guess = sorted_mm[index][0]
-                average_guesses_to_solve = 0
+                average_guesses_to_solve = 1  # start average guess to solve at 1 assuming it isn't hit on first guess. corrected later
                 for secret in matches:
                     k = WordleTools.update_knowledge(knowledge, secret, guess)
                     k_hash = WordleTools.dict_hash(k)
 
-
                     if guess == secret:
-                        best_guess_to_solve = {"g": guess, "c": 0}
-                    elif k_hash in knowledge_map:
-                        best_guess_to_solve = knowledge_map[k_hash]
-                    else: 
-                        m = WordleTools.get_possible_matches(k, matches)
-                        best_guess_to_solve = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
-                        knowledge_map[k_hash] = best_guess_to_solve
-
-                    average_guesses_to_solve += best_guess_to_solve["c"] / total_matches
+                        best_guess_to_solve = {"g": guess, "c": 1}
+                        average_guesses_to_solve -= (1 / total_matches)
+                    else:
+                        if k_hash in knowledge_map:
+                            best_guess_to_solve = knowledge_map[k_hash]
+                        else: 
+                            m = WordleTools.get_possible_matches(k, matches)
+                            best_guess_to_solve = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
+                            knowledge_map[k_hash] = best_guess_to_solve
+                        average_guesses_to_solve += best_guess_to_solve["c"] / total_matches
                 if depth == 0:
                     if index == 0:
                         print("")
                         print("guess   matches    agts    #")
-                    print(guess + "    " + format(sorted_mm[index][1], '.3f') + "    " + format(average_guesses_to_solve + 1, '.3f') + "     " + str(index))
-                average_guesses_to_solve += 1  # need to add one since this is the average remaining guesses after first guess
+                    print(guess + "    " + format(sorted_mm[index][1], '.3f') + "    " + format(average_guesses_to_solve, '.3f') + "     " + str(index))
+
                 if not best_ave_to_solve or average_guesses_to_solve < best_ave_to_solve:
                     guess_compare_counter = 0  #reset guess compare counter if best guess found
                     best_ave_to_solve = average_guesses_to_solve
                     best_guess = guess
             
             knowledge_map[origin_k_hash] = {"g": best_guess, "c": best_ave_to_solve}
-            maps.insert_batch_kmap2 = knowledge_map
+            maps.insert_batch_kmap4 = knowledge_map
             return knowledge_map[origin_k_hash]
 
     @staticmethod
@@ -312,24 +317,25 @@ class WordleTools:
         existing_suggestion = maps.get_suggestion2(k_hash)
         
         if existing_suggestion:
-            maps.delete_mmap(k_hash)
+            # maps.delete_mmap(k_hash) do later but keep for now
             return existing_suggestion
         else:
-            knowledge_map = maps.g_kmap2_all()
+            knowledge_map = maps.g_kmap4_all()
             if knowledge_map and knowledge_map[k_hash]:
                 return knowledge_map[k_hash]["g"]  ## consider moving suggestions into kmap?
 
-        suggestion_obj = WordleTools.guess_to_solve(knowledge, guess_options, answer_options, depth = 0)
+        suggestion_obj = WordleTools.guess_to_solve(knowledge, guess_options, answer_options, 0)
         suggested_guess = suggestion_obj["g"]
         maps.insert_suggestion2(k_hash, suggested_guess)
-        maps.delete_mmap(k_hash)
+        #  maps.delete_mmap(k_hash) do later but keep for now
         return suggested_guess
 
 
     @staticmethod
     def get_suggestion(knowledge, guess_options, answer_options):
         # change to redirect to right suggestion solver
-        return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
+        return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
+        # return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
 
     @staticmethod
     def get_suggestion_stable(knowledge, guess_options, answer_options):
@@ -428,11 +434,14 @@ class WordleTools:
             time_left = int(elapsed_time * progress_to_finish / progress)
             time_left_str = str(datetime.timedelta(seconds=time_left))
             if time_left > 10:
-                print(description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
+                print("\033[K", description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
                                                                         str(datetime.timedelta(
                                                                             seconds=elapsed_time)),
                                                                         time_left_str), end="\r")
+        else:
+            print("...",end="\r")
         count += 1
+
         return count
         # END TIMER CODE
 
