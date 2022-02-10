@@ -57,7 +57,7 @@ def auto_play(first_guess):
             else:
                 suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS)
             if suggestion == secret:
-                print("\r\033[K", str(try_count) + " guesses! " + secret, end="\n")
+                print("\r\033[K", secret, "in", str(try_count), end="\n")
                 break
             else:
                 knowledge = WordleTools.update_knowledge(knowledge, secret, suggestion)
@@ -224,9 +224,7 @@ if __name__ == "__main__":
     # Play wordle mode
     WORDS = load_words(GUESSES_FILE)
     ANSWERS = load_words(ANSWERS_FILE)
-    """ use match_map to create lookup table for solver """
-    #
-    # MATCH_MAP = WordleTools.create_match_map(WORDS, WORDS, WordleTools.default_knowledge())
+
     print("do you want to:")
     print("A. Play Wordle here!")
     print("B. Get help playing wordle somewhere else.")

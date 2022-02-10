@@ -19,16 +19,19 @@ class MapsDB:
 
     def __init__(self):
         self.db_conn = sqlite3.connect('wordle.db')
+        # stable solver
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP_TABLE (ID PRIMARY KEY NOT NULL, KMAP TEXT NOT NULL);')
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP4_TABLE (ID PRIMARY KEY NOT NULL, KMAP TEXT);')
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SMAP_TABLE (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
+        
+        # WIP solver
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT NOT NULL);')
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP4_TABLE (ID PRIMARY KEY NOT NULL, KMAP TEXT NOT NULL);')
 
-        """ todo remove and drop data from SMAP and MMAP if able to make new WIP suggestion tools perform"""
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS SMAP_TABLE (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS MMAP_TABLE (ID PRIMARY KEY NOT NULL, MMAP TEXT);')
-        self.db_conn.execute('DROP TABLE IF EXISTS KMAP3_TABLE;')
-        self.db_conn.execute('DROP TABLE IF EXISTS SUGGESTIONS3;')
+
+        # match_map (todo: Drop, re-add, then delete when solution is found.)
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS MMAP_TABLE (ID PRIMARY KEY NOT NULL, MMAP TEXT NOT NULL);')
+        # self.db_conn.execute('DROP TABLE IF EXISTS MMAP_TABLE;')
+
 
     def insert_mmap(self, k_hash, mmap):
         db_conn = self.db_conn
@@ -68,24 +71,6 @@ class MapsDB:
         else:
             return False
 
-    def insert_batch_kmap(self, kmap_dict):
-        db_conn = self.db_conn
-        sql_statement = "INSERT OR REPLACE INTO KMAP_TABLE (ID, KMAP) VALUES "
-        for key, value in kmap_dict.items():
-            sql_statement += '("' + key + '", "' + value + '"),'
-        sql_statement = sql_statement[:-1] + ";"
-        db_conn.execute(sql_statement)
-        db_conn.commit()
-
-    def g_kmap_all(self):
-        db_conn = self.db_conn
-        cursor = db_conn.execute("SELECT * FROM KMAP_TABLE")
-        kmap_all = cursor.fetchall()
-        if kmap_all:
-            return json.load(kmap_all)
-        else:
-            return False
-
     # wip suggestion get/set
     def insert_suggestion2(self, k_hash, suggestion):
         db_conn = self.db_conn
@@ -101,34 +86,47 @@ class MapsDB:
         else:
             return False
 
-    def insert_batch_kmap4(self, kmap_dict):
+    # wip knowledge map
+    def insert_batch_kmap5(self, knowledge_map):
         db_conn = self.db_conn
-        sql_statement = "INSERT OR REPLACE INTO KMAP4_TABLE (ID, KMAP) VALUES "
-        for key, value in kmap_dict.items():
-            sql_statement += '("' + key + '", "' + value + '"),'
-        sql_statement = sql_statement[:-1] + ";"
-        db_conn.execute(sql_statement)
+        kmap_json = json.dumps(knowledge_map)
+        db_conn.execute("INSERT OR REPLACE INTO KMAP4_TABLE (ID, KMAP) VALUES ('1', '" + kmap_json + "')")
         db_conn.commit()
 
-    # noinspection PyTypeChecker
-    def g_kmap4_all(self):
+    def get_knowledge_map_wip(self):
         db_conn = self.db_conn
-        cursor = db_conn.execute("SELECT * FROM KMAP4_TABLE")
-        kmap_all = cursor.fetchall()
-        if kmap_all:
-            return json.load(kmap_all)
+        cursor = db_conn.execute("SELECT KMAP FROM KMAP4_TABLE WHERE ID = '1'")
+        kmap = cursor.fetchone()
+        if kmap:
+            return json.loads(kmap[0])
         else:
             return False
+
+    # stable knowledge map
+    def insert_batch_knowledge_map_stable(self, knowledge_map):
+        db_conn = self.db_conn
+        kmap_json = json.dumps(knowledge_map)
+        db_conn.execute("INSERT OR REPLACE INTO KMAP_TABLE (ID, KMAP) VALUES ('1', '" + kmap_json + "')")
+        db_conn.commit()
+
+    def get_knowledge_map_stable(self):
+        db_conn = self.db_conn
+        cursor = db_conn.execute("SELECT KMAP FROM KMAP_TABLE WHERE ID = '1'")
+        kmap = cursor.fetchone()
+
+        if kmap:
+            return json.loads(kmap[0])
+        else:
+            return False
+
 
     def close_db(self):
         self.db_conn.close()
 
 
 class WordleTools:
-    DEPTH_OF_SUGGESTION = 10 ** 100  # (bigger numbers take longer)
-    WAIT_FOR_BEST_SUGGESTION = 50000  # time in seconds to wait for best guess
+    WAIT_FOR_BEST_SUGGESTION = 5 * 10 ** 6  # time in seconds to wait for best guess
     SHOW_TIMER = False  # toggle if you want to see what is taking so long
-    LOOK_FOR_MATCHES_ONLY = 2  # at what match count do you prioritize picking the right match vs eliminating options
 
     @staticmethod
     def dict_hash(dictionary):
@@ -157,7 +155,7 @@ class WordleTools:
         match_map = {}
 
 
-        knowledge_map = maps.g_kmap_all()
+        knowledge_map = maps.get_knowledge_map_stable()  # may not be working waste of tiem!
         if not knowledge_map:
             knowledge_map = {}
 
@@ -189,7 +187,9 @@ class WordleTools:
                 knowledge_map[k_hash] = match_count
                 match_map[guess] += match_count / total_words
         
-        maps.insert_batch_kmap = knowledge_map
+        maps.insert_batch_knowledge_map_stable(knowledge_map)
+        
+        save_it = False # don't save knowledge map for now
         if save_it:
             maps.insert_mmap(origin_k_hash, match_map)
 
@@ -265,7 +265,7 @@ class WordleTools:
                 Now recursively find the best average guess. 
             """
             maps = MapsDB()
-            knowledge_map = maps.g_kmap4_all()
+            knowledge_map = maps.get_knowledge_map_wip()
             if not knowledge_map:
                 knowledge_map = {}
             
@@ -307,7 +307,7 @@ class WordleTools:
                     best_guess = guess
             
             knowledge_map[origin_k_hash] = {"g": best_guess, "c": best_ave_to_solve}
-            maps.insert_batch_kmap4 = knowledge_map
+            maps.insert_batch_kmap5(knowledge_map) #maybe working now?
             return knowledge_map[origin_k_hash]
 
     @staticmethod
@@ -317,17 +317,16 @@ class WordleTools:
         existing_suggestion = maps.get_suggestion2(k_hash)
         
         if existing_suggestion:
-            # maps.delete_mmap(k_hash) do later but keep for now
+            maps.delete_mmap(k_hash)
             return existing_suggestion
         else:
-            knowledge_map = maps.g_kmap4_all()
-            if knowledge_map and knowledge_map[k_hash]:
+            knowledge_map = maps.get_knowledge_map_wip()
+            if knowledge_map and k_hash in knowledge_map:
                 return knowledge_map[k_hash]["g"]  ## consider moving suggestions into kmap?
 
         suggestion_obj = WordleTools.guess_to_solve(knowledge, guess_options, answer_options, 0)
         suggested_guess = suggestion_obj["g"]
         maps.insert_suggestion2(k_hash, suggested_guess)
-        #  maps.delete_mmap(k_hash) do later but keep for now
         return suggested_guess
 
 
