@@ -19,7 +19,7 @@ and get the best guess to solve the game in the fewest tries.
 
 ## Note: On the suggestions
 The suggested guesses have been tested in the framework for wordle solvers by Abe Land. 
-https://github.com/abeland/wordle solving the game in an average of 3.53 guesses. 
+https://github.com/abeland/wordle solving the game in an average of 3.45 guesses. 
 
 You can test this solver in this framework here: https://github.com/jonparis/wordle
 
