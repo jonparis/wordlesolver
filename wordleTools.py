@@ -61,7 +61,7 @@ class MapsDB:
 
 
 class WordleTools:
-    WAIT_FOR_BEST_SUGGESTION = 5 * 10 ** 6  # time in seconds to wait for best guess
+    WAIT_FOR_BEST_SUGGESTION = 10  # time in seconds to wait for best guess
     SHOW_TIMER = False  # toggle if you want to see what is taking so long
 
     @staticmethod
