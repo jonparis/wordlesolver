@@ -71,6 +71,8 @@ class MapsDB:
         else:
             return False
 
+    #info could be used in match-map to replace remaining average remaining matches with info theory 
+    #where info = sum(remaining_matches/total_matches * math.log(total_matches/remaining_matches,2)) something like this
     def insert_knowledge_info(self, k_hash, info):
         db_conn = self.db_conn
         db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,INFO) VALUES ('" + k_hash + "', " + str(info) + ")")
@@ -230,8 +232,6 @@ class WordleTools:
                         existing_knowledge = maps.get_knowledge(k_hash)
                         if existing_knowledge:
                             r_bgts = existing_knowledge
-                        # if k_hash in knowledge_map:
-                        #     r_bgts = knowledge_map[k_hash]
                         if not r_bgts or r_bgts["c"] is None: 
                             m = WordleTools.get_possible_matches(k, matches)
                             if len(m) > 0:
@@ -240,8 +240,6 @@ class WordleTools:
                                 return False
                         if r_bgts and r_bgts["c"] is not None:
                             maps.insert_knowledge(k_hash, r_bgts["g"], r_bgts["c"])
-                            # knowledge_map[k_hash] = r_bgts
-                            # r_bgts = knowledge_map[k_hash]
                             guess_map[guess] += (1 + r_bgts["c"]) / total_matches
                 if depth == 0:
                     guess_map[guess] -= 1
@@ -253,7 +251,6 @@ class WordleTools:
                     best_guess_c = guess_map[guess]
             bgts_obj = {"g": best_guess, "c": best_guess_c}
             if bgts_obj["g"]:
-                # knowledge_map[origin_k_hash] = bgts_obj
                 maps.insert_knowledge(origin_k_hash, bgts_obj["g"], bgts_obj["c"])
                 return bgts_obj
         return False
