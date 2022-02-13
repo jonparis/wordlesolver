@@ -22,9 +22,10 @@ class MapsDB:
 
         # stable solver
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SMAP_TABLE (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
-        
         # WIP solver
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT NOT NULL);')
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP (ID PRIMARY KEY NOT NULL, GUESS TEXT NOT NULL, AGTS FLOAT NOT NULL);')
+        self.db_conn.execute('CREATE TABLE IF NOT EXISTS INFO (ID PRIMARY KEY NOT NULL, INFO FLOAT NOT NULL);')
 
     # stable suggestion get/set
     def insert_suggestion(self, k_hash, suggestion):
@@ -53,6 +54,34 @@ class MapsDB:
         suggestion = cursor.fetchone()
         if suggestion:
             return suggestion[0]
+        else:
+            return False
+
+    def insert_knowledge(self, k_hash, guess, agts):
+        db_conn = self.db_conn
+        db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,GUESS,AGTS) VALUES ('" + k_hash + "', '" + guess + "', " + str(agts) + ")")
+        db_conn.commit()
+
+    def get_knowledge(self, k_hash):
+        db_conn = self.db_conn
+        cursor = db_conn.execute("SELECT GUESS, AGTS FROM KMAP WHERE ID = '" + k_hash + "'")
+        k = cursor.fetchone()
+        if k:
+            return {"g" : k[0], "c" : k[1]}
+        else:
+            return False
+
+    def insert_knowledge_info(self, k_hash, info):
+        db_conn = self.db_conn
+        db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,INFO) VALUES ('" + k_hash + "', " + str(info) + ")")
+        db_conn.commit()
+
+    def get_knowledge_info(self, k_hash):
+        db_conn = self.db_conn
+        cursor = db_conn.execute("SELECT INFO FROM KMAP WHERE ID = '" + k_hash + "'")
+        info = cursor.fetchone()
+        if info:
+            return info[0]
         else:
             return False
 
@@ -86,6 +115,7 @@ class WordleTools:
 
         match_map = {}
         knowledge_map = {}
+        # maps = MapsDB()
 
         total_words = len(answers)
         counter = 0
@@ -104,6 +134,7 @@ class WordleTools:
             for secret_word in answers:
                 k = WordleTools.update_knowledge(knowledge, secret_word, guess)
                 k_hash = WordleTools.dict_hash(k)
+                # info = maps.get_knowledge_info(k_hash)
 
                 if guess == secret_word:
                     match_count = 0
@@ -157,7 +188,7 @@ class WordleTools:
             print("problem! no matches")
             return False
         else:
-            
+            maps = MapsDB()
             match_map = WordleTools.create_match_map(matches, guess_options, knowledge, True)
             if not match_map: 
                 print("problem no match map!")
@@ -195,15 +226,22 @@ class WordleTools:
                     if guess == secret:
                         guess_map[guess] -= (1 /  total_matches)
                     else:
+                        # use DB to get existing knowledge
+                        existing_knowledge = maps.get_knowledge(k_hash)
+                        if existing_knowledge:
+                            r_bgts = existing_knowledge
                         # if k_hash in knowledge_map:
                         #     r_bgts = knowledge_map[k_hash]
-                        # if not r_bgts or r_bgts["c"] is None: 
-                        m = WordleTools.get_possible_matches(k, matches)
-                        if len(m) > 0:
-                            r_bgts = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
-                        else:
-                            return False
+                        if not r_bgts or r_bgts["c"] is None: 
+                            m = WordleTools.get_possible_matches(k, matches)
+                            if len(m) > 0:
+                                r_bgts = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
+                            else:
+                                return False
                         if r_bgts and r_bgts["c"] is not None:
+                            maps.insert_knowledge(k_hash, r_bgts["g"], r_bgts["c"])
+                            # knowledge_map[k_hash] = r_bgts
+                            # r_bgts = knowledge_map[k_hash]
                             guess_map[guess] += (1 + r_bgts["c"]) / total_matches
                 if depth == 0:
                     guess_map[guess] -= 1
@@ -215,7 +253,8 @@ class WordleTools:
                     best_guess_c = guess_map[guess]
             bgts_obj = {"g": best_guess, "c": best_guess_c}
             if bgts_obj["g"]:
-                knowledge_map[origin_k_hash] = bgts_obj
+                # knowledge_map[origin_k_hash] = bgts_obj
+                maps.insert_knowledge(origin_k_hash, bgts_obj["g"], bgts_obj["c"])
                 return bgts_obj
         return False
 
@@ -237,8 +276,8 @@ class WordleTools:
     @staticmethod
     def get_suggestion(knowledge, guess_options, answer_options):
         # change to redirect to right suggestion solver
-        return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
-        #return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
+        #return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
+        return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
 
     @staticmethod
     def get_suggestion_stable(knowledge, guess_options, answer_options):
