@@ -226,7 +226,6 @@ class WordleTools:
         existing_suggestion = maps.get_suggestion2(k_hash)
         
         if existing_suggestion:
-            maps.delete_mmap(k_hash)
             return existing_suggestion
 
         suggestion_obj = WordleTools.guess_to_solve(knowledge, guess_options, answer_options, 0)
