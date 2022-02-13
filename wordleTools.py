@@ -80,7 +80,7 @@ class WordleTools:
         return knowledge
 
     @staticmethod
-    def create_match_map(answers, guesses, knowledge):
+    def create_match_map(answers, guesses, knowledge, wait):
  
         origin_k_hash = WordleTools.dict_hash(knowledge)
 
@@ -96,7 +96,7 @@ class WordleTools:
             match_map[guess] = 0.0
 
             seconds_left = WordleTools.get_time_estimate(seconds_left["count"], start_time, len(guesses))
-            if seconds_left["seconds_left"] > WordleTools.WAIT_FOR_BEST_SUGGESTION:
+            if not wait and seconds_left["seconds_left"] > WordleTools.WAIT_FOR_BEST_SUGGESTION:
                 return False
             if WordleTools.SHOW_TIMER:
                 counter = WordleTools.status_time_estimate(counter, start_time, len(guesses), "M map")
@@ -158,7 +158,7 @@ class WordleTools:
             return False
         else:
             
-            match_map = WordleTools.create_match_map(matches, guess_options, knowledge)
+            match_map = WordleTools.create_match_map(matches, guess_options, knowledge, True)
             if not match_map: 
                 print("problem no match map!")
                 return False
@@ -238,8 +238,8 @@ class WordleTools:
     @staticmethod
     def get_suggestion(knowledge, guess_options, answer_options):
         # change to redirect to right suggestion solver
-        #return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
-        return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
+        return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
+        #return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
 
     @staticmethod
     def get_suggestion_stable(knowledge, guess_options, answer_options):
@@ -254,7 +254,7 @@ class WordleTools:
         if len(matches) < 3:
             suggested_guess = matches[0]
         else:
-            match_map = WordleTools.create_match_map(matches, guess_options, knowledge)
+            match_map = WordleTools.create_match_map(matches, guess_options, knowledge, False)
 
             if match_map is False:
                 return WordleTools.get_suggestion_fast(knowledge, guess_options, matches)
@@ -316,7 +316,7 @@ class WordleTools:
                 max_focus = focus_coverage
                 focus_suggested_guess = word
 
-        match_map = WordleTools.create_match_map(matches, [focus_suggested_guess, suggested_guess], knowledge)
+        match_map = WordleTools.create_match_map(matches, [focus_suggested_guess, suggested_guess], knowledge, True)
 
         narrow_over_try = 1 / match_map[focus_suggested_guess] - 1 / match_map[suggested_guess] - 1 / total_matches
         if focus_suggested_guess and narrow_over_try > 0:
