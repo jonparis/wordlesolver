@@ -149,84 +149,75 @@ class WordleTools:
         MAX_DEPTH = 6  # when looking more deeply than max depth return false
         matches = WordleTools.get_possible_matches(knowledge, answer_options)
         total_matches = len(matches)
-        if total_matches== 1:
+        if total_matches == 1:
             return {"g": matches[0], "c": 1, "d": depth}  # when there is a single option, guess it!
         elif total_matches == 2:
-            return  {"g": matches[0], "c": 1.5, "d": depth}  # when there are two options avg(1, 2) to guess it.
-        elif total_matches == 0 or depth > MAX_DEPTH:
-            return False  # something went wrong
+            return {"g": matches[0], "c": 1.5, "d": depth}  # when there are two options avg(1, 2) to guess it.
+        elif total_matches == 0:
+            print("problem! no matches")
+            return False
         else:
-
-            if depth == 0:
-                save_match_map = True
-            else: 
-                save_match_map = False
             
             match_map = WordleTools.create_match_map(matches, guess_options, knowledge)
+            if not match_map: 
+                print("problem no match map!")
+                return False
             origin_k_hash = WordleTools.dict_hash(knowledge)
-            
-            
-            """ 
-                look for great guesses and perfect guesses
-                great guess = guess leads to single match for all potential secrets
-                perfect guess = guess is a potential secret AND is a great guess
+
+            # find perfect guess (in matches AND if not guessed then guess in 1)
+            for guess in match_map.keys():
+                if guess in match_map and match_map[guess] < 1:
+                    return {"g": guess, "c": (2 - 1/total_matches), "d" : depth}
+
             """
-
-            for index in range(total_matches):
-                guess = matches[index]
-                if guess in match_map and round(match_map[guess], 7) == 1: 
-                    return {"g": guess, "c": 2 - 1/total_matches, "d" : depth}
-
-            non_matching_guesses = list(set(guess_options) - set(matches))
-            for index in range(len(non_matching_guesses)):
-                guess = non_matching_guesses[index]
-                if guess in match_map and round(match_map[guess], 7) == 1:
-                    return {"g": guess, "c": 2, "d": depth}
-
-            """ 
                 Now recursively find the best average guess. 
             """
             knowledge_map = {}
             
-            best_ave_to_solve = None
-            best_guess = None
+            bgts_obj = {}
+            best_guess = matches[0]
+            best_guess_c = 100
+            
             TEST_GUESSES = 10 # should search across all guesses but need to figure out way to stop early when best found
             sorted_mm = sorted(match_map.items(), key=operator.itemgetter(1))
             guess_compare_counter = 0
+            guess_map = {}
             for index in range(len(guess_options)):
                 guess_compare_counter += 1
                 if guess_compare_counter > TEST_GUESSES:
                     break
                 guess = sorted_mm[index][0]
-                average_guesses_to_solve = 1  # start average guess to solve at 1 assuming it isn't hit on first guess. corrected later
+                guess_map[guess] = 1  # start average guess to solve at 1 assuming it isn't hit on first guess. corrected later
                 for secret in matches:
                     k = WordleTools.update_knowledge(knowledge, secret, guess)
                     k_hash = WordleTools.dict_hash(k)
-
+                    r_bgts  = {}
                     if guess == secret:
-                        best_guess_to_solve = {"g": guess, "c": 1}
-                        average_guesses_to_solve -= (1 / total_matches)
+                        guess_map[guess] -= (1 /  total_matches)
                     else:
-                        if k_hash in knowledge_map:
-                            best_guess_to_solve = knowledge_map[k_hash]
-                        else: 
-                            m = WordleTools.get_possible_matches(k, matches)
-                            best_guess_to_solve = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
-                            knowledge_map[k_hash] = best_guess_to_solve
-                        average_guesses_to_solve += best_guess_to_solve["c"] / total_matches
+                        # if k_hash in knowledge_map:
+                        #     r_bgts = knowledge_map[k_hash]
+                        # if not r_bgts or r_bgts["c"] is None: 
+                        m = WordleTools.get_possible_matches(k, matches)
+                        if len(m) > 0:
+                            r_bgts = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
+                        else:
+                            return False
+                        if r_bgts and r_bgts["c"] is not None:
+                            guess_map[guess] += (1 + r_bgts["c"]) / total_matches
                 if depth == 0:
-                    if index == 0:
-                        print("")
-                        print("guess   matches    agts    #")
-                    print(guess + "    " + format(sorted_mm[index][1], '.3f') + "    " + format(average_guesses_to_solve, '.3f') + "     " + str(index))
-
-                if not best_ave_to_solve or average_guesses_to_solve < best_ave_to_solve:
-                    guess_compare_counter = 0  #reset guess compare counter if best guess found
-                    best_ave_to_solve = average_guesses_to_solve
+                    guess_map[guess] -= 1
+            best_guess = None
+            best_guess_c = None
+            for guess in guess_map.keys():
+                if best_guess is None or guess_map[guess] < best_guess_c:
                     best_guess = guess
-            
-            knowledge_map[origin_k_hash] = {"g": best_guess, "c": best_ave_to_solve}
-            return knowledge_map[origin_k_hash]
+                    best_guess_c = guess_map[guess]
+            bgts_obj = {"g": best_guess, "c": best_guess_c}
+            if bgts_obj["g"]:
+                knowledge_map[origin_k_hash] = bgts_obj
+                return bgts_obj
+        return False
 
     @staticmethod
     def get_suggestion_wip(knowledge, guess_options, answer_options):
@@ -247,7 +238,7 @@ class WordleTools:
     @staticmethod
     def get_suggestion(knowledge, guess_options, answer_options):
         # change to redirect to right suggestion solver
-        # return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
+        #return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
         return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
 
     @staticmethod

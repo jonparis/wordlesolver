@@ -37,28 +37,25 @@ class UnitTestCase(unittest.TestCase):
         self.assertEqual(gtoc['c'], 1, 'wrong best option')
     def test_guesses_to_solve_prefect_guess_results(self):
         knowledge = WordleTools.default_knowledge()
-        guesses = ["prick", "brick", "crick"]
-        answers = ["prick", "brick", "crick"]
-        # knowledge = WordleTools.update_knowledge(knowledge, "prick", "salet")
+        guesses = ["prick", "brick", "trick", "pbfti"]
+        answers = ["prick", "brick", "trick", "pbfti"]
         gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['c'], 2 - 1/len(answers), 'wrong best option')
     def test_guesses_to_solve_good_guess(self):
         knowledge = WordleTools.default_knowledge()
-        guesses = ["prick", "brick", "crick","trick","pbcti"]
-        answers = ["prick", "brick", "crick","trick"]
-        # knowledge = WordleTools.update_knowledge(knowledge, "prick", "salet")
+        guesses = ["prick", "brick", "frick", "pbfti", "trick"]
+        answers = ["prick", "brick", "frick", "trick"]
         gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['c'], 2, 'wrong best option')
     def test_guesses_to_solve_average_others(self):
-        guesses = ["prick", "brick", "crick","trick","pbcti"]
-        answers = ["prick", "brick", "crick","trick"]
-        gts_good = {'g': "prick", 'c' : 2}
-        gts_perfect = {'g': "brick", "c" : 2 - 1/len(answers)}
-        gts_two = {'g' : "crick", "c" : 1.5} 
-        gts_one = {'g' : "trick", "c" : 1 }
-        gts_answer = {'g' : "pbcti", "c" : 1} # This should be checked!
+        guesses = ["prick", "brick", "frick", "trick", "pbfti"]
+        answers = ["prick", "brick", "frick", "trick"]
+        gts_good = {'g': "good1", 'c' : 2}
+        gts_perfect = {'g': "perfe", "c" : 2 - 1/len(answers)}
+        gts_two = {'g' : "twooo", "c" : 1.5} 
+        gts_one = {'g' : "oneee", "c" : 1 }
+        gts_answer = {'g' : "answe", "c" : 1} # This should be checked!
         bgts_ave = (gts_good["c"] + gts_perfect["c"] + gts_two["c"] + gts_one["c"] - gts_answer["c"])/len(answers)
-        print("average" + str(bgts_ave))
         self.assertEqual(bgts_ave, 1.3125, 'wrong best option')
     """ TODO: test solutions that will deal with averaging a number of best guesses """
 
