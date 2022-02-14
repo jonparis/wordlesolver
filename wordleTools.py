@@ -25,7 +25,6 @@ class MapsDB:
         # WIP solver
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT NOT NULL);')
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP (ID PRIMARY KEY NOT NULL, GUESS TEXT NOT NULL, AGTS FLOAT NOT NULL);')
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS INFO (ID PRIMARY KEY NOT NULL, INFO FLOAT NOT NULL);')
 
     # stable suggestion get/set
     def insert_suggestion(self, k_hash, suggestion):
@@ -68,22 +67,6 @@ class MapsDB:
         k = cursor.fetchone()
         if k:
             return {"g" : k[0], "c" : k[1]}
-        else:
-            return False
-
-    #info could be used in match-map to replace remaining average remaining matches with info theory 
-    #where info = sum(remaining_matches/total_matches * math.log(total_matches/remaining_matches,2)) something like this
-    def insert_knowledge_info(self, k_hash, info):
-        db_conn = self.db_conn
-        db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,INFO) VALUES ('" + k_hash + "', " + str(info) + ")")
-        db_conn.commit()
-
-    def get_knowledge_info(self, k_hash):
-        db_conn = self.db_conn
-        cursor = db_conn.execute("SELECT INFO FROM KMAP WHERE ID = '" + k_hash + "'")
-        info = cursor.fetchone()
-        if info:
-            return info[0]
         else:
             return False
 
@@ -208,14 +191,12 @@ class WordleTools:
             knowledge_map = {}
             
             bgts_obj = {}
-            best_guess = matches[0]
-            best_guess_c = 100
-            
-            TEST_GUESSES = 10 # should search across all guesses but need to figure out way to stop early when best found
+            total_guesses = len(guess_options)
+            TEST_GUESSES = total_guesses # could limit for efficency but let's do the best!
             sorted_mm = sorted(match_map.items(), key=operator.itemgetter(1))
             guess_compare_counter = 0
             guess_map = {}
-            for index in range(len(guess_options)):
+            for index in range(total_guesses):
                 guess_compare_counter += 1
                 if guess_compare_counter > TEST_GUESSES:
                     break
@@ -273,8 +254,8 @@ class WordleTools:
     @staticmethod
     def get_suggestion(knowledge, guess_options, answer_options):
         # change to redirect to right suggestion solver
-        #return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
-        return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
+        return WordleTools.get_suggestion_wip(knowledge, guess_options, answer_options)
+        #return WordleTools.get_suggestion_stable(knowledge, guess_options, answer_options)
 
     @staticmethod
     def get_suggestion_stable(knowledge, guess_options, answer_options):
