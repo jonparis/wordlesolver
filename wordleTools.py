@@ -57,9 +57,12 @@ class MapsDB:
             return False
 
     def insert_knowledge(self, k_hash, guess, agts):
-        db_conn = self.db_conn
-        db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,GUESS,AGTS) VALUES ('" + k_hash + "', '" + guess + "', " + str(agts) + ")")
-        db_conn.commit()
+        try:
+            db_conn = self.db_conn
+            db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,GUESS,AGTS) VALUES ('" + k_hash + "', '" + guess + "', " + str(agts) + ")")
+            db_conn.commit()
+        except: 
+            print("db connection issue in insert knowledge")
 
     def get_knowledge(self, k_hash):
         db_conn = self.db_conn
@@ -76,7 +79,7 @@ class MapsDB:
 
 class WordleTools:
     WAIT_FOR_BEST_SUGGESTION = 10  # time in seconds to wait for best guess
-    SHOW_TIMER = False  # toggle if you want to see what is taking so long
+    SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
     def dict_hash(dictionary):
@@ -192,12 +195,16 @@ class WordleTools:
             
             bgts_obj = {}
             total_guesses = len(guess_options)
-            TEST_GUESSES = total_guesses # could limit for efficency but let's do the best!
+            TEST_GUESSES = 100 # ideally would be total_guesses, but too expensive.
             sorted_mm = sorted(match_map.items(), key=operator.itemgetter(1))
             guess_compare_counter = 0
             guess_map = {}
+            counter = 0
+            start_time = time.time()
             for index in range(total_guesses):
                 guess_compare_counter += 1
+                if WordleTools.SHOW_TIMER and depth == 0:
+                    counter = WordleTools.status_time_estimate(counter, start_time, TEST_GUESSES, "B-guess")
                 if guess_compare_counter > TEST_GUESSES:
                     break
                 guess = sorted_mm[index][0]
@@ -211,16 +218,17 @@ class WordleTools:
                     else:
                         # use DB to get existing knowledge
                         existing_knowledge = maps.get_knowledge(k_hash)
-                        if existing_knowledge:
-                            r_bgts = existing_knowledge
-                        if not r_bgts or r_bgts["c"] is None: 
+                        save_knowledge = False
+                        if existing_knowledge: r_bgts = existing_knowledge
+                        if not r_bgts or not r_bgts["c"]:
                             m = WordleTools.get_possible_matches(k, matches)
                             if len(m) > 0:
                                 r_bgts = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
+                                save_knowledge = True
                             else:
                                 return False
-                        if r_bgts and r_bgts["c"] is not None:
-                            maps.insert_knowledge(k_hash, r_bgts["g"], r_bgts["c"])
+                        if r_bgts and r_bgts["c"]:
+                            if save_knowledge: maps.insert_knowledge(k_hash, r_bgts["g"], r_bgts["c"])
                             guess_map[guess] += (1 + r_bgts["c"]) / total_matches
                 if depth == 0:
                     guess_map[guess] -= 1
