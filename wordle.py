@@ -47,7 +47,7 @@ def auto_play(first_guess):
     for secret in ANSWERS:
         #print("\r\033[K","Target: " + secret,end="")
         suggestion = None
-        knowledge = Knowledge.default_knowledge()
+        k = Knowledge.default_knowledge()
         try_count = 0
 
         while suggestion != secret:
@@ -56,12 +56,12 @@ def auto_play(first_guess):
             if try_count == 1:
                 suggestion = first_guess  # force first word
             else:
-                suggestion = WordleTools.get_suggestion(knowledge, WORDS, ANSWERS)
+                suggestion = WordleTools.get_suggestion(k, WORDS, ANSWERS)
             if suggestion == secret:
                 print("\r\033[K", secret, "in", str(try_count), end="\n")
                 break
             else:
-                knowledge = Knowledge.update_knowledge(knowledge, secret, suggestion)
+                k = Knowledge.update_knowledge(k, secret, suggestion)
     print("\r\033[K","first guess " + first_guess + " average guesses: " + str(round(total_guesses / total_secrets, 3)),end="\n")
 
 
@@ -69,36 +69,34 @@ def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
 
-    def decorate_word_with_knowledge(know, word):
+    def decorate_word_with_knowledge(k, word):
         decorated_word = ""
         for i in range(Knowledge.WORD_LENGTH):
             c = word[i]
-            k = know[str(i)]
-            if c == k[Knowledge.IN_POSITION]:
+            if c == k[str(i)][Knowledge.IN_POSITION]:
                 color = COLORS.GREEN
-            elif c in know[Knowledge.IN_WORD]:
+            elif c in k[Knowledge.IN_WORD]:
                 color = COLORS.YELLOW
-            elif c in know[Knowledge.NOT_IN_WORD]:
+            elif c in k[Knowledge.NOT_IN_WORD]:
                 color = COLORS.GREY
             else:
                 color = " "
             decorated_word += color + c + COLORS.SPACE_COLOR
         return decorated_word + "\n\n"
 
-    def show_decorated_keyboard(know):
+    def show_decorated_keyboard(k):
         for c in 'qwertyuiopasdfghjklzxcvbnm':
             if c == 'a' or c == 'z':
                 print("\n")
             in_position = False
             for i in range(Knowledge.WORD_LENGTH):
-                k = know[str(i)]
-                if c == k[Knowledge.IN_POSITION]:
+                if c == k[str(i)][Knowledge.IN_POSITION]:
                     in_position = True
             if in_position:
                 color = COLORS.GREEN
-            elif c in know[Knowledge.IN_WORD]:
+            elif c in k[Knowledge.IN_WORD]:
                 color = COLORS.YELLOW
-            elif c in know[Knowledge.NOT_IN_WORD]:
+            elif c in k[Knowledge.NOT_IN_WORD]:
                 color = COLORS.GREY
             else:
                 color = COLORS.BLACK
@@ -109,14 +107,14 @@ def play_wordle(secret_word, wordlist):
     print("Welcome to Wordle!")
     print("I am thinking of a word that is " + str(Knowledge.WORD_LENGTH) + " letters long.")
     attempts = ""
-    knowledge = Knowledge.default_knowledge()
+    k = Knowledge.default_knowledge()
 
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
         print("Type a " + str(
             Knowledge.WORD_LENGTH) + " letter word, ! for potential word, or !! for potential words with a suggestion")
 
-        show_decorated_keyboard(knowledge)  # prints keyboard
+        show_decorated_keyboard(k)  # prints keyboard
 
         # request guess
         guess = str(input("Please guess a word " + str(len(secret_word)) + " letters long: ")).lower()[
@@ -131,13 +129,13 @@ def play_wordle(secret_word, wordlist):
 
         # if asking for potential matches show list
         if guess == "!":
-            matches = Knowledge.get_possible_matches(knowledge, ANSWERS)
+            matches = Knowledge.get_possible_matches(k, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
-            matches = Knowledge.get_possible_matches(knowledge, ANSWERS)
+            matches = Knowledge.get_possible_matches(k, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, matches))
+            print("Suggested guess: " + WordleTools.get_suggestion(k, WORDS, matches))
 
         elif len(guess) != Knowledge.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
@@ -146,8 +144,8 @@ def play_wordle(secret_word, wordlist):
 
         # review guess
         else:
-            knowledge = Knowledge.update_knowledge(knowledge, secret_word, guess)
-            attempts += decorate_word_with_knowledge(knowledge, guess)
+            k = Knowledge.update_knowledge(k, secret_word, guess)
+            attempts += decorate_word_with_knowledge(k, guess)
             print(attempts)
             remaining_guesses -= 1
             if remaining_guesses == 0:
@@ -160,7 +158,7 @@ def suggestions_only():
     total_guesses = 6
     remaining_guesses = total_guesses
 
-    knowledge = Knowledge.default_knowledge()
+    k = Knowledge.default_knowledge()
 
     # starting welcome
     print("Welcome to Wordle Helper!")
@@ -184,30 +182,29 @@ def suggestions_only():
             for i in range(len(guess)):
                 c = guess[i]
                 res = str(new_knowledge[i])
-                k = knowledge[str(i)]
                 if res == 'G':
-                    if c not in knowledge[Knowledge.IN_WORD]:
-                        knowledge[Knowledge.IN_WORD].append(c)
-                    k[Knowledge.IN_POSITION] = c
+                    if c not in k[Knowledge.IN_WORD]:
+                        k[Knowledge.IN_WORD].append(c)
+                    k[str(i)][Knowledge.IN_POSITION] = c
                 elif res == 'Y':
-                    if c not in k[Knowledge.NOT_IN_POSITION]:
-                        k[Knowledge.NOT_IN_POSITION].append(c)
-                    if c not in knowledge[Knowledge.IN_WORD]:
-                        knowledge[Knowledge.IN_WORD].append(c)
+                    if c not in k[str(i)][Knowledge.NOT_IN_POSITION]:
+                        k[str(i)][Knowledge.NOT_IN_POSITION].append(c)
+                    if c not in k[Knowledge.IN_WORD]:
+                        k[Knowledge.IN_WORD].append(c)
                 else:
-                    if c not in knowledge[Knowledge.NOT_IN_WORD]:
-                        if c not in knowledge[Knowledge.IN_WORD]:
-                            knowledge[Knowledge.NOT_IN_WORD].append(c)
+                    if c not in k[Knowledge.NOT_IN_WORD]:
+                        if c not in k[Knowledge.IN_WORD]:
+                            k[Knowledge.NOT_IN_WORD].append(c)
                         else:
-                            k[Knowledge.NOT_IN_POSITION].append(c)
+                            k[str(i)][Knowledge.NOT_IN_POSITION].append(c)
 
-            matches = Knowledge.get_possible_matches(copy.deepcopy(knowledge), ANSWERS)
+            matches = Knowledge.get_possible_matches(copy.deepcopy(k), ANSWERS)
             total_matches = len(matches)
             print("Total: " + str(total_matches) + " " + str(matches))
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("Suggested guess: " + WordleTools.get_suggestion(knowledge, WORDS, ANSWERS))
+                print("Suggested guess: " + WordleTools.get_suggestion(k, WORDS, ANSWERS))
             remaining_guesses -= 1
         else:
             print("try again. either your guess or feedback was the wrong length")
@@ -235,6 +232,8 @@ if __name__ == "__main__":
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
         play_wordle(choose_word(ANSWERS), WORDS)
+    elif menu == 'b':
+        suggestions_only()
     elif menu == 'c':
         auto_play('salet')  # todo can do more here
     elif menu == 'd':
