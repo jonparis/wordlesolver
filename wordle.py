@@ -4,99 +4,57 @@
 import copy
 import random
 from solver import Solver
-from wordle_common import Knowledge
+from wordle_common import Knowledge, COLORS, Tools
 
 WORDLIST_FILENAME = "words.txt"
 ANSWERS_FILE = "words-answers.txt"
 GUESSES_FILE = "words-guesses.txt"
 
 
-class COLORS:
-    GREEN = " \033[0;30;42m "
-    BLACK = " \033[0;37;40m "
-    YELLOW = " \033[0;30;43m "
-    GREY = " \033[0;30;47m "
-    SPACE_COLOR = " \033[0;37;48m"
-
-
-def load_words(file_name):
-    print("Loading word list...")
-    infile = open(file_name, 'r')
-    line = infile.readline()
-    wordlist = line.split()
-    chosen_word_length = []
-    for x in wordlist:
-        if len(x) == Knowledge.WORD_LENGTH:
-            chosen_word_length.append(x)
-    print("  ", len(chosen_word_length), "words loaded.")
-    return chosen_word_length
-
-
 def choose_word(wordlist):
     return random.choice(wordlist)
 
+
 def populate_db():
-    #for word in WORDS:
-    for word in ["salet", "arose", "arise", "raise", "crate", "trace", "slate", "crane", "argue", "ocean"]:
+    top_100 = ("raise", "raile", "soare", "arise", "irate", "orate", "ariel", "arose", "raine", "artel", "taler", "ratel", "aesir", "arles", "realo", "alter", "saner", "later", "snare", "oater", "salet", "taser", "stare", "tares", "slate", "alert", "reais", "lares", "reast", "strae", "laser", "saine", "rales", "urate", "crate", "serai", "toile", "seral", "rates", "carte", "antre", "slane", "trace", "coate", "carle", "carse", "stoae", "reals", "terai", "aeros", "liane", "tears", "caret", "stale", "alure", "slier", "resat", "sorel", "tales", "nares", "aisle", "litre", "saice", "learn", "earnt", "oriel", "earst", "lears", "paire", "reoil", "alone", "teras", "urase", "leant", "aloes", "torse", "aster", "arets", "least", "soler", "reans", "retia", "laten", "siler", "anole", "crane", "trone", "laers", "earls", "stear", "atone", "ayrie", "trail", "stane", "react", "haole", "teals", "maire", "toise", "tiler")
+    recs = ("salet", "reast", "crate", "trace", "slate", "crane")
+    for word in recs + top_100:
         print("starting word: " + word)
-        auto_play(word)
-
-def auto_play(first_guess):
-    total_secrets = len(ANSWERS)
-    total_guesses = 0
-    for secret in ANSWERS:
-        #print("\r\033[K","Target: " + secret,end="")
-        suggestion = None
-        k = Knowledge.default_knowledge()
-        try_count = 0
-
-        while suggestion != secret:
-            try_count += 1
-            total_guesses += 1
-            if try_count == 1:
-                suggestion = first_guess  # force first word
-            else:
-                suggestion = Solver.get_suggestion(k, WORDS, ANSWERS)
-            if suggestion == secret:
-                print("\r\033[K", secret, "in", str(try_count), end="\n")
-                break
-            else:
-                k = Knowledge.update_knowledge(k, secret, suggestion)
-    print("\r\033[K","first guess " + first_guess + " average guesses: " + str(round(total_guesses / total_secrets, 5)),end="\n")
-
+        s = Solver(ANSWERS, WORDS, False)
+        s.auto_play(word)  # todo can do autoplay and optimize but will take a long time!
 
 def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
 
-    def decorate_word_with_knowledge(k, word):
+    def decorate_word_with_knowledge(kn: dict, word: str) -> str:
         decorated_word = ""
         for i in range(Knowledge.WORD_LENGTH):
             c = word[i]
-            if c == k[str(i)][Knowledge.IN_POSITION]:
+            if c == kn[str(i)][Knowledge.IN_POSITION]:
                 color = COLORS.GREEN
-            elif c in k[Knowledge.IN_WORD]:
+            elif c in kn[Knowledge.IN_WORD]:
                 color = COLORS.YELLOW
-            elif c in k[Knowledge.NOT_IN_WORD]:
+            elif c in kn[Knowledge.NOT_IN_WORD]:
                 color = COLORS.GREY
             else:
                 color = " "
             decorated_word += color + c + COLORS.SPACE_COLOR
         return decorated_word + "\n\n"
 
-    def show_decorated_keyboard(k):
+    def show_decorated_keyboard(kn: dict):
         for c in 'qwertyuiopasdfghjklzxcvbnm':
             if c == 'a' or c == 'z':
                 print("\n")
             in_position = False
             for i in range(Knowledge.WORD_LENGTH):
-                if c == k[str(i)][Knowledge.IN_POSITION]:
+                if c == kn[str(i)][Knowledge.IN_POSITION]:
                     in_position = True
             if in_position:
                 color = COLORS.GREEN
-            elif c in k[Knowledge.IN_WORD]:
+            elif c in kn[Knowledge.IN_WORD]:
                 color = COLORS.YELLOW
-            elif c in k[Knowledge.NOT_IN_WORD]:
+            elif c in kn[Knowledge.NOT_IN_WORD]:
                 color = COLORS.GREY
             else:
                 color = COLORS.BLACK
@@ -108,6 +66,7 @@ def play_wordle(secret_word, wordlist):
     print("I am thinking of a word that is " + str(Knowledge.WORD_LENGTH) + " letters long.")
     attempts = ""
     k = Knowledge.default_knowledge()
+    prev_guesses = ()
 
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")
@@ -119,6 +78,7 @@ def play_wordle(secret_word, wordlist):
         # request guess
         guess = str(input("Please guess a word " + str(len(secret_word)) + " letters long: ")).lower()[
                 :Knowledge.WORD_LENGTH]
+        prev_guesses = prev_guesses + tuple([guess])
 
         # check if they made the correct guess!
         if guess == secret_word:
@@ -135,7 +95,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = Knowledge.get_possible_matches(k, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + Solver.get_suggestion(k, WORDS, matches))
+            print("Suggested guess: " + solver.get_suggestion_stable(k, prev_guesses))
 
         elif len(guess) != Knowledge.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
@@ -157,6 +117,7 @@ def play_wordle(secret_word, wordlist):
 def suggestions_only():
     total_guesses = 6
     remaining_guesses = total_guesses
+    prev_guesses = ()
 
     k = Knowledge.default_knowledge()
 
@@ -170,6 +131,7 @@ def suggestions_only():
 
         # request guess
         guess = str(input("Type your guess:")).lower()[:Knowledge.WORD_LENGTH]
+        prev_guesses = prev_guesses + tuple([guess])
         print("Type the response you got in order.")
         print("'G' if in the right position")
         print("'Y' yellow if in the word but not in the position, and ")
@@ -201,10 +163,9 @@ def suggestions_only():
             matches = Knowledge.get_possible_matches(copy.deepcopy(k), ANSWERS)
             total_matches = len(matches)
             print("Total: " + str(total_matches) + " " + str(matches))
-
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("Suggested guess: " + Solver.get_suggestion(k, WORDS, ANSWERS))
+                print("Suggested guess: " + solver.get_suggestion_stable(k, prev_guesses))
             remaining_guesses -= 1
         else:
             print("try again. either your guess or feedback was the wrong length")
@@ -220,21 +181,27 @@ def play_again():
 
 if __name__ == "__main__":
     # Play wordle mode
-    WORDS = load_words(GUESSES_FILE)
-    ANSWERS = load_words(ANSWERS_FILE)
+    WORDS = tuple(Tools.load_words(GUESSES_FILE))
+    ANSWERS = tuple(Tools.load_words(ANSWERS_FILE))
 
     print("do you want to:")
     print("A. Play Wordle here!")
     print("B. Get help playing wordle somewhere else.")
     print("C. Auto Play to test solver!")
     print("D. Populate DB!")
+    print("E. Autoplay and optimize solver!")
 
     menu = str(input("Your Choice:")).lower()
+    solver = Solver(ANSWERS, WORDS, False)
     if menu == 'a':
+        solver = Solver(ANSWERS, WORDS, True)
         play_wordle(choose_word(ANSWERS), WORDS)
     elif menu == 'b':
+        solver = Solver(ANSWERS, WORDS, True)
         suggestions_only()
     elif menu == 'c':
-        auto_play('salet')  # todo can do more here
+        solver.auto_play("salet")  # todo can do more here
     elif menu == 'd':
         populate_db()
+    elif menu == 'e':
+        solver.auto_play_and_optimize("salet")  # todo can do more here
