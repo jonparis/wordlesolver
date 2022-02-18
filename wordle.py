@@ -3,7 +3,7 @@
 # Collaborators: Joey Paris, Nathan Paris
 import copy
 import random
-from solver import WordleTools
+from solver import Solver
 from wordle_common import Knowledge
 
 WORDLIST_FILENAME = "words.txt"
@@ -56,7 +56,7 @@ def auto_play(first_guess):
             if try_count == 1:
                 suggestion = first_guess  # force first word
             else:
-                suggestion = WordleTools.get_suggestion(k, WORDS, ANSWERS)
+                suggestion = Solver.get_suggestion(k, WORDS, ANSWERS)
             if suggestion == secret:
                 print("\r\033[K", secret, "in", str(try_count), end="\n")
                 break
@@ -135,7 +135,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = Knowledge.get_possible_matches(k, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + WordleTools.get_suggestion(k, WORDS, matches))
+            print("Suggested guess: " + Solver.get_suggestion(k, WORDS, matches))
 
         elif len(guess) != Knowledge.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
@@ -204,7 +204,7 @@ def suggestions_only():
 
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("Suggested guess: " + WordleTools.get_suggestion(k, WORDS, ANSWERS))
+                print("Suggested guess: " + Solver.get_suggestion(k, WORDS, ANSWERS))
             remaining_guesses -= 1
         else:
             print("try again. either your guess or feedback was the wrong length")

@@ -1,51 +1,52 @@
 import copy
 import random
-from wordleTools import KNOWLEDGE, WordleTools
+from wordle_common import KNOWLEDGE
+from solver import Solver
 import unittest
 
 class UnitTestCase(unittest.TestCase):
     def setUp(self):
         self.secret = "prick"
-        self.knowledge = WordleTools.default_knowledge()
+        self.knowledge = Solver.default_knowledge()
         self.suggestion = "salet"
     def test_guesses_to_solve(self):
-        knowledge = WordleTools.default_knowledge()
+        knowledge = Solver.default_knowledge()
         guesses = ["salet", "prick"]
         answers = ["salet", "prick"]
-        gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
+        gtoc = Solver.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['g'], "salet", 'wrong best option')
     def test_guesses_to_solve_count(self):
-        knowledge = WordleTools.default_knowledge()
+        knowledge = Solver.default_knowledge()
         guesses = ["salet", "prick"]
         answers = ["prick"]
-        knowledge = WordleTools.update_knowledge(knowledge, "prick", "salet")
-        gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
+        knowledge = Solver.update_knowledge(knowledge, "prick", "salet")
+        gtoc = Solver.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['c'], 1, 'wrong best option')
     def test_guesses_to_solve_two_results(self):
-        knowledge = WordleTools.default_knowledge()
+        knowledge = Solver.default_knowledge()
         guesses = ["salet", "prick", "brick"]
         answers = ["prick", "brick"]
-        knowledge = WordleTools.update_knowledge(knowledge, "prick", "salet")
-        gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
+        knowledge = Solver.update_knowledge(knowledge, "prick", "salet")
+        gtoc = Solver.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['c'], 1.5, 'wrong best option')
     def test_guesses_to_solve_known_answer(self):
-        knowledge = WordleTools.default_knowledge()
+        knowledge = Solver.default_knowledge()
         guesses = ["salet", "prick"]
         answers = ["prick", "salet"]
-        knowledge = WordleTools.update_knowledge(knowledge, "prick", "salet")
-        gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
+        knowledge = Solver.update_knowledge(knowledge, "prick", "salet")
+        gtoc = Solver.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['c'], 1, 'wrong best option')
     def test_guesses_to_solve_prefect_guess_results(self):
-        knowledge = WordleTools.default_knowledge()
+        knowledge = Solver.default_knowledge()
         guesses = ["prick", "brick", "trick", "pbfti"]
         answers = ["prick", "brick", "trick", "pbfti"]
-        gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
+        gtoc = Solver.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['c'], 2 - 1/len(answers), 'wrong best option')
     def test_guesses_to_solve_good_guess(self):
-        knowledge = WordleTools.default_knowledge()
+        knowledge = Solver.default_knowledge()
         guesses = ["prick", "brick", "frick", "pbfti", "trick"]
         answers = ["prick", "brick", "frick", "trick"]
-        gtoc = WordleTools.guess_to_solve(knowledge, guesses, answers, 0)
+        gtoc = Solver.guess_to_solve(knowledge, guesses, answers, 0)
         self.assertEqual(gtoc['c'], 2, 'wrong best option')
     def test_guesses_to_solve_average_others(self):
         guesses = ["prick", "brick", "frick", "trick", "pbfti"]

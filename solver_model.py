@@ -42,7 +42,7 @@ class MapsDB:
         else:
             return False
 
-    def insert_Knowledge(self, k_hash, guess, agts):
+    def insert_knowledge(self, k_hash, guess, agts):
         try:
             db_conn = self.db_conn
             db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,GUESS,AGTS) VALUES ('" + k_hash + "', '" + guess + "', " + str(agts) + ")")
@@ -50,7 +50,7 @@ class MapsDB:
         except: 
             print("db connection issue in insert Knowledge")
 
-    def get_Knowledge(self, k_hash):
+    def get_knowledge(self, k_hash):
         db_conn = self.db_conn
         cursor = db_conn.execute("SELECT GUESS, AGTS FROM KMAP WHERE ID = '" + k_hash + "'")
         k = cursor.fetchone()

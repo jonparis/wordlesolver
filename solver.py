@@ -7,11 +7,9 @@ from wordle_common import Knowledge, TimeTools
 from solver_model import MapsDB
 
 
-class WordleTools:
+class Solver:
     WAIT_FOR_BEST_SUGGESTION = 10  # time in seconds to wait for best guess
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
-
-    
 
     @staticmethod
     def create_match_map(answers, guesses, knowledge, wait):
@@ -31,9 +29,9 @@ class WordleTools:
             match_map[guess] = 0.0
 
             seconds_left = TimeTools.get_time_estimate(seconds_left["count"], start_time, len(guesses))
-            if not wait and seconds_left["seconds_left"] > WordleTools.WAIT_FOR_BEST_SUGGESTION:
+            if not wait and seconds_left["seconds_left"] > Solver.WAIT_FOR_BEST_SUGGESTION:
                 return False
-            if WordleTools.SHOW_TIMER:
+            if Solver.SHOW_TIMER:
                 counter = TimeTools.status_time_estimate(counter, start_time, len(guesses), "M map")
 
             for secret_word in answers:
@@ -54,7 +52,47 @@ class WordleTools:
         return match_map
 
 
+    @staticmethod
+    def get_suggestion_recursive(k, guesses, answers, depth):
+        maps = MapsDB()
+        origin_k_hash = Knowledge.dict_hash(k)  # get hashkey for suggestion map
+        existing_suggestion = maps.get_knowledge(origin_k_hash)
+        if existing_suggestion:
+            return existing_suggestion
 
+        matches = Knowledge.get_possible_matches(k, answers)
+        total_matches = len(matches)
+
+        # "g" = guess. "c" = certainty
+        if total_matches == 0: return {"g": False, "c": False, "d": False}
+        if total_matches == 1: return {"g": matches[0], "c" : 0, "d": depth + 1} 
+        if total_matches == 2: return {"g": matches[0], "c" : 1/2, "d": depth + 1}
+        if depth > 5: return {"g": False, "c": False, "d": False}  
+        
+        best_guess = matches[0]
+        best_guess_c = total_matches # lower is better
+        match_map ={}
+        counter = 0
+        start_time = time.time()
+        for guess in guesses:
+            if Solver.SHOW_TIMER:
+                counter = TimeTools.status_time_estimate(counter, start_time, len(guesses), "M map")
+
+            match_map[guess] = 0.0
+            for secret in matches:
+                if guess == secret:
+                    match_map[guess] += 0 # is this right?
+                else:
+                    k_r = Knowledge.update_knowledge(k, secret, guess)
+                    k_hash = Knowledge.dict_hash(k_r)
+                    m = Knowledge.get_possible_matches(k_r, answers)
+                    match_map[guess] += len(m) / total_matches
+            if match_map[guess] < best_guess_c: 
+                best_guess = guess
+                best_guess_c = match_map[guess]
+            
+        maps.insert_knowledge(origin_k_hash, best_guess, best_guess_c)
+        return {"g" : best_guess, "c" : best_guess_c, "d": depth + 1}
 
     @staticmethod
     def guess_to_solve(knowledge, guess_options, answer_options, depth):
@@ -70,7 +108,7 @@ class WordleTools:
             return False
         else:
             maps = MapsDB()
-            match_map = WordleTools.create_match_map(matches, guess_options, knowledge, True)
+            match_map = Solver.create_match_map(matches, guess_options, knowledge, True)
             if not match_map: 
                 print("problem no match map!")
                 return False
@@ -96,7 +134,7 @@ class WordleTools:
             start_time = time.time()
             for index in range(total_guesses):
                 guess_compare_counter += 1
-                if WordleTools.SHOW_TIMER and depth == 0:
+                if Solver.SHOW_TIMER and depth == 0:
                     counter = TimeTools.status_time_estimate(counter, start_time, TEST_GUESSES, "B-guess")
                 if guess_compare_counter > TEST_GUESSES:
                     break
@@ -104,7 +142,7 @@ class WordleTools:
                 guess_map[guess] = 1  # start average guess to solve at 1 assuming it isn't hit on first guess. corrected later
                 for secret in matches:
                     k = Knowledge.update_knowledge(knowledge, secret, guess)
-                    k_hash = WordleTools.dict_hash(k)
+                    k_hash = Knowledge.dict_hash(k)
                     r_bgts  = {}
                     if guess == secret:
                         guess_map[guess] -= (1 /  total_matches)
@@ -116,7 +154,7 @@ class WordleTools:
                         if not r_bgts or not r_bgts["c"]:
                             m = Knowledge.get_possible_matches(k, matches)
                             if len(m) > 0:
-                                r_bgts = WordleTools.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
+                                r_bgts = Solver.guess_to_solve(k, guess_options[:index] + guess_options[index+1:], m, depth + 1)
                                 save_knowledge = True
                             else:
                                 return False
@@ -146,17 +184,19 @@ class WordleTools:
         if existing_suggestion:
             return existing_suggestion
 
-        suggestion_obj = WordleTools.guess_to_solve(k, guess_options, answer_options, 0)
+        suggestion_obj = Solver.guess_to_solve(k, guess_options, answer_options, 0)
         suggested_guess = suggestion_obj["g"]
         maps.insert_suggestion2(k_hash, suggested_guess)
         return suggested_guess
 
 
     @staticmethod
-    def get_suggestion(k, guess_options, answer_options):
+    def get_suggestion(k, guesses, answers):
         # change to redirect to right suggestion solver
-        return WordleTools.get_suggestion_wip(k, guess_options, answer_options)
-        #return WordleTools.get_suggestion_stable(k, guess_options, answer_options)
+        sug_obj = Solver.get_suggestion_recursive(k, guesses, answers, depth)
+        return sug_obj["g"]
+        #return Solver.get_suggestion_wip(k, guesses, answers)
+        #return Solver.get_suggestion_stable(k, guesses, answers)
 
     @staticmethod
     def get_suggestion_stable(k, guess_options, answer_options):
@@ -171,10 +211,10 @@ class WordleTools:
         if len(matches) < 3:
             suggested_guess = matches[0]
         else:
-            match_map = WordleTools.create_match_map(matches, guess_options, k, False)
+            match_map = Solver.create_match_map(matches, guess_options, k, False)
 
             if match_map is False:
-                return WordleTools.get_suggestion_fast(k, guess_options, matches)
+                return Solver.get_suggestion_fast(k, guess_options, matches)
             total_matches = len(matches)
             avg_exg_maybe_match = total_matches
             avg_exc_match = total_matches
@@ -233,7 +273,7 @@ class WordleTools:
                 max_focus = focus_coverage
                 focus_suggested_guess = word
 
-        match_map = WordleTools.create_match_map(matches, [focus_suggested_guess, suggested_guess], k, True)
+        match_map = Solver.create_match_map(matches, [focus_suggested_guess, suggested_guess], k, True)
 
         narrow_over_try = 1 / match_map[focus_suggested_guess] - 1 / match_map[suggested_guess] - 1 / total_matches
         if focus_suggested_guess and narrow_over_try > 0:
