@@ -44,7 +44,7 @@ class Solver:
     @staticmethod
     def get_suggestion_recursive(k: dict, guesses: list, answers: list, depth: int, test: bool) -> dict:
         maps = MapsDB()
-        debug = True
+        debug = False
         origin_k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
         existing_suggestion = maps.get_knowledge(origin_k_hash)
         if existing_suggestion and not test:
@@ -69,7 +69,7 @@ class Solver:
         start_time = time.time()
         for i in range(len(guesses)):
             guess = guesses[i]
-            if Solver.SHOW_TIMER:
+            if Solver.SHOW_TIMER and depth == 0:
                 counter = TimeTools.status_time_estimate(counter, start_time, len(guesses), "M map")
 
             guess_map[guess] = 0.0
@@ -80,13 +80,17 @@ class Solver:
                     k_r = Knowledge.update_knowledge(k, secret, guess)
                     k_hash = Knowledge.dict_hash(k_r)
                     m = Knowledge.get_possible_matches(k_r, answers)
-                    # b = Solver.get_suggestion_recursive(k_r, guesses[:i] + guesses[i + 1:], m, depth + 1, False)
-                    # if b["g"] is False:  # guess doesn't work for a possible secret. throw it out!
-                    #     guess_map[guess] = False
-                    #     print("guess", guess, "break", secret, "not this one!", depth)
-                    #     break
-                    guess_map[guess] += len(m) / total_matches
-                    #guess_map[guess] += (b["c"] + b["d"]) / total_matches
+                    if depth < 2:
+                        b = Solver.get_suggestion_recursive(k_r, guesses[:i] + guesses[i + 1:], m, depth + 1, False)
+                        if b["g"] is False:  # guess doesn't work for a possible secret. throw it out!
+                            guess_map[guess] = False
+                            if debug: print("guess", guess, "break", secret, "not this one!", depth)
+                            break
+                        guess_map[guess] += (b["c"] + b["d"]) / total_matches
+                    else:
+                        # add the guess now!
+                        guess_map[guess] += len(m) / total_matches
+
             if guess_map[guess] is not False:
                 if guess_map[guess] <= 1 - 1 / total_matches:
                     if debug: print("perfect guess! stop looking")
@@ -98,15 +102,15 @@ class Solver:
                     best_guess_c = guess_map[guess]
                     if debug: print("best guess", guess, "c", guess_map[guess])
 
-        maps.insert_knowledge(origin_k_hash, best_guess, best_guess_c)
+        if not test: maps.insert_knowledge(origin_k_hash, best_guess, best_guess_c)
         return {"g": best_guess, "c": best_guess_c, "d": depth + 1}
 
     @staticmethod
     def get_suggestion(k, guesses, answers):
         # change to redirect to right suggestion solver
-        sug_obj = Solver.get_suggestion_recursive(k, guesses, answers, 0, True)
-        return sug_obj["g"]
-        # return Solver.get_suggestion_stable(k, guesses, answers)
+        #sug_obj = Solver.get_suggestion_recursive(k, guesses, answers, 0, False)
+        #return sug_obj["g"]
+        return Solver.get_suggestion_stable(k, guesses, answers)
 
     @staticmethod
     def get_suggestion_stable(k, guess_options, answer_options):
