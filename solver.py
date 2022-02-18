@@ -59,8 +59,8 @@ class Solver:
         # "g" = guess. "c" = certainty, "d" depth (for use in recursive function)
         if total_matches == 0: return {"g": False}
         if depth > max_depth: return {"g": False}
-        if total_matches == 1: return {"g": matches[0], "c": 0, "d": depth + 1}
-        if total_matches == 2: return {"g": matches[0], "c": 1 / 2, "d": depth + 1}
+        if total_matches == 1: return {"g": matches[0], "c": 1, "d": depth + 1}
+        if total_matches == 2: return {"g": matches[0], "c": 1.5, "d": depth + 1}
 
         best_guess = matches[0]
         best_guess_c = total_matches  # lower is better
@@ -86,7 +86,7 @@ class Solver:
                             guess_map[guess] = False
                             if debug: print("guess", guess, "break", secret, "not this one!", depth)
                             break
-                        guess_map[guess] += (b["c"] + b["d"]) / total_matches
+                        guess_map[guess] += b["d"] * b["c"] / total_matches
                     else:
                         # add the guess now!
                         guess_map[guess] += len(m) / total_matches
