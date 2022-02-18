@@ -4,7 +4,7 @@ from solver_model import MapsDB
 
 
 class Solver:
-    WAIT_FOR_BEST_SUGGESTION = 10 #  * 10 * 100  # time in seconds to wait for best guess
+    WAIT_FOR_BEST_SUGGESTION = 10 * 10 * 100  # time in seconds to wait for best guess
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
@@ -44,7 +44,7 @@ class Solver:
     @staticmethod
     def get_suggestion_recursive(k: dict, guesses: list, answers: list, depth: int, test: bool) -> dict:
         maps = MapsDB()
-        debug = False
+        debug = True
         origin_k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
         existing_suggestion = maps.get_knowledge(origin_k_hash)
         if existing_suggestion and not test:
@@ -108,9 +108,9 @@ class Solver:
     @staticmethod
     def get_suggestion(k, guesses, answers):
         # change to redirect to right suggestion solver
-        #sug_obj = Solver.get_suggestion_recursive(k, guesses, answers, 0, False)
-        #return sug_obj["g"]
-        return Solver.get_suggestion_stable(k, guesses, answers)
+        sug_obj = Solver.get_suggestion_recursive(k, guesses, answers, 0, False)
+        return sug_obj["g"]
+        #  return Solver.get_suggestion_stable(k, guesses, answers)
 
     @staticmethod
     def get_suggestion_stable(k, guess_options, answer_options):
