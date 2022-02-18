@@ -4,7 +4,7 @@ from solver_model import MapsDB
 
 
 class Solver:
-    WAIT_FOR_BEST_SUGGESTION = 10 * 10 * 100  # time in seconds to wait for best guess
+    WAIT_FOR_BEST_SUGGESTION = 10 #  * 10 * 100  # time in seconds to wait for best guess
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod

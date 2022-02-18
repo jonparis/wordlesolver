@@ -62,7 +62,7 @@ def auto_play(first_guess):
                 break
             else:
                 k = Knowledge.update_knowledge(k, secret, suggestion)
-    print("\r\033[K","first guess " + first_guess + " average guesses: " + str(round(total_guesses / total_secrets, 3)),end="\n")
+    print("\r\033[K","first guess " + first_guess + " average guesses: " + str(round(total_guesses / total_secrets, 5)),end="\n")
 
 
 def play_wordle(secret_word, wordlist):
