@@ -45,7 +45,7 @@ def auto_play(first_guess):
     total_secrets = len(ANSWERS)
     total_guesses = 0
     for secret in ANSWERS:
-        #print("\r\033[K","Target: " + secret,end="")
+        print("\r\033[K","Target: " + secret,end="")
         suggestion = None
         k = Knowledge.default_knowledge()
         try_count = 0

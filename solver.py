@@ -44,7 +44,7 @@ class Solver:
     @staticmethod
     def get_suggestion_recursive(k: dict, guesses: list, answers: list, depth: int, test: bool) -> dict:
         maps = MapsDB()
-        debug = True
+        debug = False
         origin_k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
         existing_suggestion = maps.get_knowledge(origin_k_hash)
         if existing_suggestion and not test:
@@ -80,7 +80,10 @@ class Solver:
                     k_r = Knowledge.update_knowledge(k, secret, guess)
                     k_hash = Knowledge.dict_hash(k_r)
                     m = Knowledge.get_possible_matches(k_r, answers)
-                    if depth < 2:
+                    existing_suggestion = maps.get_knowledge(k_hash)
+                    if existing_suggestion:
+                        guess_map[guess] += (depth + 1) * existing_suggestion["c"] / total_matches
+                    elif depth < 2:
                         b = Solver.get_suggestion_recursive(k_r, guesses[:i] + guesses[i + 1:], m, depth + 1, False)
                         if b["g"] is False:  # guess doesn't work for a possible secret. throw it out!
                             guess_map[guess] = False
