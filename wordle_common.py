@@ -56,7 +56,7 @@ class Knowledge:
         return matches
 
     @staticmethod
-    def update_knowledge(k: dict, secret_word: str, guess: str):
+    def update_knowledge(k: dict, secret_word: str, guess: str) -> dict:
         k = copy.deepcopy(k)
         guess = str(guess).lower()  # make sure guess is in lower case
         for i in range(Knowledge.WORD_LENGTH):
@@ -74,7 +74,6 @@ class Knowledge:
                 if c not in k[Knowledge.NOT_IN_WORD]:
                     if c not in k[Knowledge.IN_WORD]:
                         k[Knowledge.NOT_IN_WORD].append(c)
-                # could optimize be removing words with 2+, of c if get back not in work when in word
         return Knowledge.standardize_knowledge(k)
 
     @staticmethod
@@ -93,7 +92,7 @@ class TimeTools:
         elapsed_time = int(time_now - start_time)
 
         if total_count == 0:
-            return 0
+            return {"count": 0, "seconds_left": -1}
         progress = count / total_count
         progress_to_finish = 1 - count / total_count
 

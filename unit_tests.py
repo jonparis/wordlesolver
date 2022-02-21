@@ -13,7 +13,7 @@ class UnitTestCase(unittest.TestCase):
         knowledge = Knowledge.default_knowledge()
         guesses = ["salet", "prick"]
         answers = ["salet", "prick"]
-        gtoc = Solver.get_suggestion_recursive(knowledge, guesses, answers, 0, True)
+        gtoc = Solver.get_suggestion_exp(knowledge, guesses, answers, 0, True)
         self.assertEqual("salet", gtoc['g'], 'wrong best word')
 
     def test_guesses_to_solve_count(self):
@@ -21,7 +21,7 @@ class UnitTestCase(unittest.TestCase):
         guesses = ["salet", "prick"]
         answers = ["prick"]
         knowledge = Knowledge.update_knowledge(knowledge, "prick", "salet")
-        gtoc = Solver.get_suggestion_recursive(knowledge, guesses, answers, 0, True)
+        gtoc = Solver.get_suggestion_exp(knowledge, guesses, answers, 0, True)
         self.assertEqual(1, gtoc['c'], 'wrong confidence')
 
     def test_guesses_to_solve_two_results(self):
@@ -29,7 +29,7 @@ class UnitTestCase(unittest.TestCase):
         guesses = ["salet", "prick", "brick"]
         answers = ["prick", "brick"]
         knowledge = Knowledge.update_knowledge(knowledge, "prick", "salet")
-        gtoc = Solver.get_suggestion_recursive(knowledge, guesses, answers, 0, True)
+        gtoc = Solver.get_suggestion_exp(knowledge, guesses, answers, 0, True)
         self.assertEqual(1.5, gtoc['c'], 'wrong best guess confidence')
 
     def test_guesses_to_solve_known_answer(self):
@@ -37,25 +37,24 @@ class UnitTestCase(unittest.TestCase):
         guesses = ["salet", "prick"]
         answers = ["prick", "salet"]
         knowledge = Knowledge.update_knowledge(knowledge, "prick", "salet")
-        gtoc = Solver.get_suggestion_recursive(knowledge, guesses, answers, 0, True)
+        gtoc = Solver.get_suggestion_exp(knowledge, guesses, answers, 0, True)
         self.assertEqual(1, gtoc['c'], 'wrong best confidence')
 
     def test_guesses_to_solve_prefect_guess_results(self):
         knowledge = Knowledge.default_knowledge()
         guesses = ["prick", "brick", "trick", "pbfti"]
         answers = ["prick", "brick", "trick", "pbfti"]
-        gtoc = Solver.get_suggestion_recursive(knowledge, guesses, answers, 0, True)
+        gtoc = Solver.get_suggestion_exp(knowledge, guesses, answers, 0, True)
         self.assertEqual(2 - 1 / len(answers), gtoc['c'], 'wrong best confidence')
 
     def test_guesses_to_solve_good_guess(self):
         knowledge = Knowledge.default_knowledge()
         guesses = ["prick", "brick", "frick", "pbfti", "trick"]
         answers = ["prick", "brick", "frick", "trick"]
-        gtoc = Solver.get_suggestion_recursive(knowledge, guesses, answers, 0, True)
+        gtoc = Solver.get_suggestion_exp(knowledge, guesses, answers, 0, True)
         self.assertEqual(2, gtoc['c'], 'wrong best confidence')
 
     def test_guesses_to_solve_average_others(self):
-        guesses = ["prick", "brick", "frick", "trick", "pbfti"]
         answers = ["prick", "brick", "frick", "trick"]
         gts_good = {'g': "good1", 'c': 2}
         gts_perfect = {'g': "perfe", "c": 2 - 1 / len(answers)}
