@@ -41,9 +41,10 @@ def populate_db():
         print("starting word: " + word)
         auto_play(word)
 
-def auto_play(first_guess):
+def auto_play(first_guess: str) -> int:
     total_secrets = len(ANSWERS)
     total_guesses = 0
+    dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
     for secret in ANSWERS:
         print("\r\033[K","Target: " + secret,end="")
         suggestion = None
@@ -58,18 +59,20 @@ def auto_play(first_guess):
             else:
                 suggestion = Solver.get_suggestion(k, WORDS, ANSWERS)
             if suggestion == secret:
-                print("\r\033[K", secret, "in", str(try_count), end="\n")
+                dist[try_count] += 1
+                # print("\r\033[K", secret, "in", str(try_count), end="\n")
                 break
             else:
                 k = Knowledge.update_knowledge(k, secret, suggestion)
-    print("\r\033[K","first guess " + first_guess + " average guesses: " + str(round(total_guesses / total_secrets, 5)),end="\n")
+    avg = format(total_guesses / total_secrets, '.5f')
+    print("\r\033[K", first_guess, total_guesses, avg, str(dist), end="\n")
 
 
 def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
 
-    def decorate_word_with_knowledge(k, word):
+    def decorate_word_with_knowledge(k: dict, word: str) -> str:
         decorated_word = ""
         for i in range(Knowledge.WORD_LENGTH):
             c = word[i]
@@ -84,7 +87,7 @@ def play_wordle(secret_word, wordlist):
             decorated_word += color + c + COLORS.SPACE_COLOR
         return decorated_word + "\n\n"
 
-    def show_decorated_keyboard(k):
+    def show_decorated_keyboard(k: dict):
         for c in 'qwertyuiopasdfghjklzxcvbnm':
             if c == 'a' or c == 'z':
                 print("\n")

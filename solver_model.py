@@ -1,5 +1,5 @@
 import sqlite3
-import json
+
 
 class MapsDB:
 
@@ -9,16 +9,19 @@ class MapsDB:
         # stable solver
         self.db_conn.execute('CREATE TABLE IF NOT EXISTS SMAP_TABLE (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT);')
         # WIP solver
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT NOT NULL);')
-        self.db_conn.execute('CREATE TABLE IF NOT EXISTS KMAP (ID PRIMARY KEY NOT NULL, GUESS TEXT NOT NULL, AGTS FLOAT NOT NULL);')
+        self.db_conn.execute(
+            'CREATE TABLE IF NOT EXISTS SUGGESTIONS (ID PRIMARY KEY NOT NULL, SUGGESTION TEXT NOT NULL);')
+        self.db_conn.execute(
+            'CREATE TABLE IF NOT EXISTS KMAP (ID PRIMARY KEY NOT NULL, GUESS TEXT NOT NULL, AGTS FLOAT NOT NULL);')
 
     # stable suggestion get/set
-    def insert_suggestion(self, k_hash, suggestion):
+    def insert_suggestion(self, k_hash: str, suggestion: str):
         db_conn = self.db_conn
-        db_conn.execute("INSERT OR REPLACE INTO SMAP_TABLE (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
+        db_conn.execute(
+            "INSERT OR REPLACE INTO SMAP_TABLE (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
         db_conn.commit()
 
-    def get_suggestion(self, k_hash):
+    def get_suggestion(self, k_hash: str):
         db_conn = self.db_conn
         cursor = db_conn.execute("SELECT SUGGESTION FROM SMAP_TABLE WHERE ID = '" + k_hash + "'")
         suggestion = cursor.fetchone()
@@ -28,12 +31,13 @@ class MapsDB:
             return False
 
     # wip suggestion get/set
-    def insert_suggestion2(self, k_hash, suggestion):
+    def insert_suggestion2(self, k_hash: str, suggestion: str):
         db_conn = self.db_conn
-        db_conn.execute("INSERT OR REPLACE INTO SUGGESTIONS (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
+        db_conn.execute(
+            "INSERT OR REPLACE INTO SUGGESTIONS (ID,SUGGESTION) VALUES ('" + k_hash + "', '" + suggestion + "')")
         db_conn.commit()
 
-    def get_suggestion2(self, k_hash):
+    def get_suggestion2(self, k_hash: str):
         db_conn = self.db_conn
         cursor = db_conn.execute("SELECT SUGGESTION FROM SUGGESTIONS WHERE ID = '" + k_hash + "'")
         suggestion = cursor.fetchone()
@@ -42,20 +46,22 @@ class MapsDB:
         else:
             return False
 
-    def insert_knowledge(self, k_hash, guess, agts):
+    def insert_knowledge(self, k_hash: str, guess: str, confidence: float):
         try:
             db_conn = self.db_conn
-            db_conn.execute("INSERT OR REPLACE INTO KMAP (ID,GUESS,AGTS) VALUES ('" + k_hash + "', '" + guess + "', " + str(agts) + ")")
+            db_conn.execute(
+                "INSERT OR REPLACE INTO KMAP (ID,GUESS,AGTS) VALUES ('" + k_hash + "', '" + guess + "', " + str(
+                    confidence) + ")")
             db_conn.commit()
-        except: 
+        except:
             print("db connection issue in insert Knowledge")
 
-    def get_knowledge(self, k_hash):
+    def get_knowledge(self, k_hash: str):
         db_conn = self.db_conn
         cursor = db_conn.execute("SELECT GUESS, AGTS FROM KMAP WHERE ID = '" + k_hash + "'")
         k = cursor.fetchone()
         if k:
-            return {"g" : k[0], "c" : k[1]}
+            return {"g": k[0], "c": k[1]}
         else:
             return False
 

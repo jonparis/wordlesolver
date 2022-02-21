@@ -8,7 +8,7 @@ class Solver:
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
-    def create_match_map(answers, guesses, knowledge, wait):
+    def create_match_map(answers: list, guesses: list, knowledge: dict, wait: bool) -> dict:
 
         match_map = {}
         knowledge_map = {}
@@ -42,7 +42,7 @@ class Solver:
         return match_map
 
     @staticmethod
-    def get_suggestion_recursive(k: dict, guesses: list, answers: list, depth: int, test: bool) -> dict:
+    def get_suggestion_exp(k: dict, guesses: list, answers: list, depth: int, test: bool) -> dict:
         maps = MapsDB()
         debug = True
         origin_k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
@@ -72,7 +72,7 @@ class Solver:
             if Solver.SHOW_TIMER and depth == 0:
                 counter = TimeTools.status_time_estimate(counter, start_time, len(guesses), "M map")
 
-            guess_map[guess] = Solver.populate_guess_map(depth, guess, guesses, i, k, maps, matches)
+            guess_map[guess] = Solver.populate_guess_map(depth, guess, guesses, i, k, matches)
 
             if guess_map[guess] is not False:
                 if guess_map[guess] <= 1 - 1 / total_matches:
@@ -87,9 +87,10 @@ class Solver:
         return {"g": best_guess, "c": best_guess_c, "d": depth + 1}
 
     @staticmethod
-    def populate_guess_map(depth, guess, guesses, i, k, maps, matches):
+    def populate_guess_map(depth: int, guess: str, guesses: list, i: int, k: dict, matches: list) -> float:
         guess_c = 0.0
         total_matches = len(matches)
+        maps = MapsDB()
         for secret in matches:
             if guess == secret:
                 guess_c += 0  # is this right?
@@ -103,7 +104,7 @@ class Solver:
                 if existing_suggestion:
                     guess_c += (depth + 1) * existing_suggestion["c"] / total_matches
                 elif depth < 1:
-                    b = Solver.get_suggestion_recursive(k_r, guesses[:i] + guesses[i + 1:], m, depth + 1, False)
+                    b = Solver.get_suggestion_exp(k_r, guesses[:i] + guesses[i + 1:], m, depth + 1, False)
                     if b["g"] is False: return False
                     guess_c += b["d"] * b["c"] / total_matches
                 else:
@@ -111,14 +112,20 @@ class Solver:
         return guess_c
 
     @staticmethod
-    def get_suggestion(k, guesses, answers):
-        # change to redirect to right suggestion solver
-        sug_obj = Solver.get_suggestion_recursive(k, guesses, answers, 0, False)
-        return sug_obj["g"]
-        #  return Solver.get_suggestion_stable(k, guesses, answers)
+    def get_suggestion(k: dict, guesses: list, answers: list) -> str:
+        use_stable = True # change if chose to use non-stable
+        use_fast = False
+        if use_stable:
+            return Solver.get_suggestion_stable(k, guesses, answers)
+        elif use_fast:
+            return Solver.get_suggestion_fast(k, guesses, answers)
+        else:
+            sug_obj = Solver.get_suggestion_exp(k, guesses, answers, 0, False)
+            return sug_obj["g"]
+
 
     @staticmethod
-    def get_suggestion_stable(k, guess_options, answer_options):
+    def get_suggestion_stable(k: dict, guess_options: list, answer_options:list) -> str:
         maps = MapsDB()
         k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
         existing_suggestion_knowledge = maps.get_suggestion(k_hash)
@@ -156,7 +163,7 @@ class Solver:
         return suggested_guess
 
     @staticmethod
-    def get_suggestion_fast(k, guess_options, answer_options):
+    def get_suggestion_fast(k: dict, guess_options: list, answer_options:list) -> str:
         # get as much insight into the letters we don't know about that are in the remaining words
         # exclude words that
 
