@@ -10,7 +10,8 @@ class Solver:
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
-    def create_match_map(answers: list, guesses: list, knowledge: str, wait: bool):
+    @lru_cache(maxsize=None)
+    def create_match_map(answers: tuple, guesses: tuple, knowledge: str, wait: bool):
 
         match_map = {}
         knowledge_map = {}
@@ -37,7 +38,7 @@ class Solver:
                 elif k_hash in knowledge_map:
                     match_count = knowledge_map[k_hash]
                 else:
-                    matches = Knowledge.get_possible_matches(k, answers)
+                    matches = Knowledge.get_possible_matches(k, tuple(answers))
                     match_count = len(matches)
                 knowledge_map[k_hash] = match_count
                 match_map[guess] += match_count / total_words
@@ -45,17 +46,16 @@ class Solver:
         return match_map
 
     @staticmethod
-    def get_suggestion_exp(k: str, guesses: list, answers: list, depth: int, test: bool) -> dict:
+    @lru_cache(maxsize=None)
+    def get_suggestion_exp(k: str, guesses: tuple, answers: tuple, depth: int, test: bool) -> dict:
         maps = MapsDB()
-        #origin_k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
-        origin_k_hash = k
-        existing_suggestion = maps.get_knowledge(origin_k_hash)
+        existing_suggestion = maps.get_knowledge(k)
         if existing_suggestion and not test:
             existing_suggestion["d"] = depth + 1
             return existing_suggestion
 
-        matches = Knowledge.get_possible_matches(k, answers)
-        non_match_guesses = list(set(guesses).difference(matches))
+        matches = Knowledge.get_possible_matches(k, tuple(answers))
+        non_match_guesses = tuple(set(guesses).difference(matches))
         guesses = matches + non_match_guesses  # reorder guesses to try matches first
         total_matches = len(matches)
         max_depth = 5
@@ -86,11 +86,11 @@ class Solver:
                     best_guess = guess
                     best_guess_c = guess_map[guess]
 
-        if not test: maps.insert_knowledge(origin_k_hash, best_guess, best_guess_c)
+        if not test: maps.insert_knowledge(k, best_guess, best_guess_c)
         return {"g": best_guess, "c": best_guess_c, "d": depth + 1}
 
     @staticmethod
-    def populate_guess_map(depth: int, guess: str, guesses: list, i: int, k: str, matches: list) -> float:
+    def populate_guess_map(depth: int, guess: str, guesses: tuple, i: int, k: str, matches: tuple) -> float:
         guess_c = 0.0
         total_matches = len(matches)
         maps = MapsDB()
@@ -108,7 +108,8 @@ class Solver:
                 if existing_suggestion:
                     guess_c += (depth + 1) * existing_suggestion["c"] / total_matches
                 elif depth < 1:
-                    b = Solver.get_suggestion_exp(k_r, guesses[:i] + guesses[i + 1:], m, depth + 1, False)
+                    updated_guesses = tuple(guesses[:i] + guesses[i + 1:])
+                    b = Solver.get_suggestion_exp(k_r, updated_guesses, m, depth + 1, False)
                     if b["g"] is False: return False
                     guess_c += b["d"] * b["c"] / total_matches
                 else:
@@ -116,7 +117,7 @@ class Solver:
         return guess_c
 
     @staticmethod
-    def get_suggestion(k: str, guesses: list, answers: list) -> str:
+    def get_suggestion(k: str, guesses: tuple, answers: tuple) -> str:
         use_stable = True  # change if chose to use non-stable
         use_fast = False
         if use_stable:
@@ -128,15 +129,14 @@ class Solver:
             return sug_obj["g"]
 
     @staticmethod
-    def get_suggestion_stable(k: str, guess_options: list, answer_options: list) -> str:
+    @lru_cache(maxsize=2**25)
+    def get_suggestion_stable(k: str, guess_options: tuple, answer_options: tuple) -> str:
         maps = MapsDB()
-        # k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
-        k_hash = k
-        existing_suggestion_knowledge = maps.get_suggestion(k_hash)
+        existing_suggestion_knowledge = maps.get_suggestion(k)
         if existing_suggestion_knowledge:
             return existing_suggestion_knowledge
 
-        matches = Knowledge.get_possible_matches(k, answer_options)
+        matches = Knowledge.get_possible_matches(k, tuple(answer_options))
 
         if len(matches) < 3:
             suggested_guess = matches[0]
@@ -163,15 +163,16 @@ class Solver:
             if narrow_over_try > 0:
                 suggested_guess = suggested_guess_maybe_matching
 
-        maps.insert_suggestion(k_hash, suggested_guess)
+        maps.insert_suggestion(k, suggested_guess)
         return suggested_guess
 
     @staticmethod
-    def get_suggestion_fast(k: str, guess_options: list, answer_options: list) -> str:
+    @lru_cache(maxsize=2**25)
+    def get_suggestion_fast(k: str, guess_options: tuple, answer_options: tuple) -> str:
         # get as much insight into the letters we don't know about that are in the remaining words
         # exclude words that
 
-        matches = Knowledge.get_possible_matches(k, answer_options)
+        matches = Knowledge.get_possible_matches(k, tuple(answer_options))
         letter_count = {}
         focus_letter_count = {}
         in_word_letters = k[Knowledge.IN_WORD]
@@ -203,7 +204,7 @@ class Solver:
                 max_focus = focus_coverage
                 focus_suggested_guess = word
 
-        match_map = Solver.create_match_map(matches, [focus_suggested_guess, suggested_guess], k, True)
+        match_map = Solver.create_match_map(matches, (focus_suggested_guess, suggested_guess), k, True)
 
         narrow_over_try = 1 / match_map[focus_suggested_guess] - 1 / match_map[suggested_guess] - 1 / total_matches
         if focus_suggested_guess and narrow_over_try > 0:

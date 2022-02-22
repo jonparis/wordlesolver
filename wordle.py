@@ -82,33 +82,31 @@ def play_wordle(secret_word, wordlist):
         decorated_word = ""
         for i in range(Knowledge.WORD_LENGTH):
             c = word[i]
-            word_pos = Knowledge.WORD_LENGTH + string.ascii_lowercase.index(c)
-            if c == kn[i]:
-                color = COLORS.GREEN
-            elif kn[word_pos] == Knowledge.YES:
-                color = COLORS.YELLOW
-            elif kn[word_pos] == Knowledge.NO:
-                color = COLORS.GREY
-            else:
-                color = " "
+            color = decorate(c, i, kn)
             decorated_word += color + c + COLORS.SPACE_COLOR
         return decorated_word + "\n\n"
 
+    def decorate(c, i, kn):
+        word_pos = Knowledge.WORD_LENGTH + string.ascii_lowercase.index(c)
+        if c == kn[i]:
+            color = COLORS.GREEN
+        elif kn[word_pos] == Knowledge.YES:
+            color = COLORS.YELLOW
+        elif kn[word_pos] == Knowledge.NO:
+            color = COLORS.GREY
+        else:
+            color = COLORS.BLACK
+        return color
+
     def show_decorated_keyboard(kn: str):
+        color = {}
         for c in 'qwertyuiopasdfghjklzxcvbnm':
+            color[c] = COLORS.BLACK
             if c == 'a' or c == 'z':
                 print("\n")
             for i in range(Knowledge.WORD_LENGTH):
-                word_pos = Knowledge.WORD_LENGTH + string.ascii_lowercase.index(c)
-                if c == kn[i]:
-                    color = COLORS.GREEN
-                elif kn[word_pos] == Knowledge.YES:
-                    color = COLORS.YELLOW
-                elif kn[word_pos] == Knowledge.NO:
-                    color = COLORS.GREY
-                else:
-                    color = COLORS.BLACK
-            print(color + c, end=COLORS.SPACE_COLOR)
+                if color[c] != COLORS.GREEN: color[c] = decorate(c, i, kn)
+            print(color[c] + c, end=COLORS.SPACE_COLOR)
         print("\n")
 
     # starting welcome
@@ -142,7 +140,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = Knowledge.get_possible_matches(k, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + Solver.get_suggestion(k, WORDS, matches))
+            print("Suggested guess: " + Solver.get_suggestion(k, WORDS, tuple(matches)))
 
         elif len(guess) != Knowledge.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
@@ -227,8 +225,8 @@ def play_again():
 
 if __name__ == "__main__":
     # Play wordle mode
-    WORDS = load_words(GUESSES_FILE)
-    ANSWERS = load_words(ANSWERS_FILE)
+    WORDS = tuple(load_words(GUESSES_FILE))
+    ANSWERS = tuple(load_words(ANSWERS_FILE))
 
     print("do you want to:")
     print("A. Play Wordle here!")
