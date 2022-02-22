@@ -3,6 +3,8 @@
 # Collaborators: Joey Paris, Nathan Paris
 import copy
 import random
+import string
+
 from solver import Solver
 from wordle_common import Knowledge
 
@@ -35,20 +37,23 @@ def load_words(file_name):
 def choose_word(wordlist):
     return random.choice(wordlist)
 
+
 def populate_db():
-    #for word in WORDS:
+    #  for word in WORDS:
     for word in ["salet", "arose", "arise", "raise", "crate", "trace", "slate", "crane", "argue", "ocean"]:
         print("starting word: " + word)
         auto_play(word)
 
-def auto_play(first_guess: str) -> int:
+
+def auto_play(first_guess: str):
     total_secrets = len(ANSWERS)
     total_guesses = 0
     dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+    dk = Knowledge.default_knowledge()
     for secret in ANSWERS:
-        print("\r\033[K","Target: " + secret,end="")
+        print("\r\033[K", "Target: " + secret, end="")
         suggestion = None
-        k = Knowledge.default_knowledge()
+        k = copy.deepcopy(dk)
         try_count = 0
 
         while suggestion != secret:
@@ -71,38 +76,38 @@ def auto_play(first_guess: str) -> int:
 def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
+    k = Knowledge.default_knowledge()
 
-    def decorate_word_with_knowledge(k: dict, word: str) -> str:
+    def decorate_word_with_knowledge(kn: str, word: str) -> str:
         decorated_word = ""
         for i in range(Knowledge.WORD_LENGTH):
             c = word[i]
-            if c == k[str(i)][Knowledge.IN_POSITION]:
+            word_pos = Knowledge.WORD_LENGTH + string.ascii_lowercase.index(c)
+            if c == kn[i]:
                 color = COLORS.GREEN
-            elif c in k[Knowledge.IN_WORD]:
+            elif kn[word_pos] == Knowledge.YES:
                 color = COLORS.YELLOW
-            elif c in k[Knowledge.NOT_IN_WORD]:
+            elif kn[word_pos] == Knowledge.NO:
                 color = COLORS.GREY
             else:
                 color = " "
             decorated_word += color + c + COLORS.SPACE_COLOR
         return decorated_word + "\n\n"
 
-    def show_decorated_keyboard(k: dict):
+    def show_decorated_keyboard(kn: str):
         for c in 'qwertyuiopasdfghjklzxcvbnm':
             if c == 'a' or c == 'z':
                 print("\n")
-            in_position = False
             for i in range(Knowledge.WORD_LENGTH):
-                if c == k[str(i)][Knowledge.IN_POSITION]:
-                    in_position = True
-            if in_position:
-                color = COLORS.GREEN
-            elif c in k[Knowledge.IN_WORD]:
-                color = COLORS.YELLOW
-            elif c in k[Knowledge.NOT_IN_WORD]:
-                color = COLORS.GREY
-            else:
-                color = COLORS.BLACK
+                word_pos = Knowledge.WORD_LENGTH + string.ascii_lowercase.index(c)
+                if c == kn[i]:
+                    color = COLORS.GREEN
+                elif kn[word_pos] == Knowledge.YES:
+                    color = COLORS.YELLOW
+                elif kn[word_pos] == Knowledge.NO:
+                    color = COLORS.GREY
+                else:
+                    color = COLORS.BLACK
             print(color + c, end=COLORS.SPACE_COLOR)
         print("\n")
 
@@ -110,7 +115,6 @@ def play_wordle(secret_word, wordlist):
     print("Welcome to Wordle!")
     print("I am thinking of a word that is " + str(Knowledge.WORD_LENGTH) + " letters long.")
     attempts = ""
-    k = Knowledge.default_knowledge()
 
     while remaining_guesses > 0:
         print("\nYou have " + str(remaining_guesses) + " guesses left.")

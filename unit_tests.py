@@ -1,8 +1,11 @@
+import string
+
 from wordle_common import Knowledge
 from solver import Solver
 import unittest
 
 
+# noinspection SpellCheckingInspection
 class UnitTestCase(unittest.TestCase):
     def setUp(self):
         self.secret = "prick"
@@ -63,7 +66,26 @@ class UnitTestCase(unittest.TestCase):
         gts_answer = {'g': "answe", "c": 1}  # This should be checked!
         bgts_ave = (gts_good["c"] + gts_perfect["c"] + gts_two["c"] + gts_one["c"] - gts_answer["c"]) / len(answers)
         self.assertEqual(1.3125, bgts_ave, 'wrong best confidence')
+    def test_guesses_to_solve_average_others(self):
+        alpha = string.ascii_lowercase
+        alpha_len = len(alpha)
+        Knowledge.WORD_LENGTH
+        INCORRECT = -1
+        CORRECT = 1
+        UNKNOWN = 0
+        k = ""
+        # word knowledge
+        for n in range(alpha_len):
+            k += "0"
+        # place knowledge
+        for n in range(Knowledge.WORD_LENGTH):
+            k += "0"
+        print(k)
 
+
+
+        bgts_ave = (gts_good["c"] + gts_perfect["c"] + gts_two["c"] + gts_one["c"] - gts_answer["c"]) / len(answers)
+        self.assertEqual(1.3125, bgts_ave, 'wrong best confidence')
     """ TODO: test solutions that will deal with averaging a number of best guesses """
 
 

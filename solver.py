@@ -1,4 +1,6 @@
 import time
+from functools import lru_cache
+
 from wordle_common import Knowledge, TimeTools
 from solver_model import MapsDB
 
@@ -8,7 +10,7 @@ class Solver:
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
-    def create_match_map(answers: list, guesses: list, knowledge: dict, wait: bool) -> dict:
+    def create_match_map(answers: list, guesses: list, knowledge: str, wait: bool):
 
         match_map = {}
         knowledge_map = {}
@@ -27,7 +29,8 @@ class Solver:
 
             for secret_word in answers:
                 k = Knowledge.update_knowledge(knowledge, secret_word, guess)
-                k_hash = Knowledge.dict_hash(k)
+                # k_hash = Knowledge.dict_hash(k)
+                k_hash = k
 
                 if guess == secret_word:
                     match_count = 0
@@ -42,10 +45,10 @@ class Solver:
         return match_map
 
     @staticmethod
-    def get_suggestion_exp(k: dict, guesses: list, answers: list, depth: int, test: bool) -> dict:
+    def get_suggestion_exp(k: str, guesses: list, answers: list, depth: int, test: bool) -> dict:
         maps = MapsDB()
-        debug = True
-        origin_k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
+        #origin_k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
+        origin_k_hash = k
         existing_suggestion = maps.get_knowledge(origin_k_hash)
         if existing_suggestion and not test:
             existing_suggestion["d"] = depth + 1
@@ -87,7 +90,7 @@ class Solver:
         return {"g": best_guess, "c": best_guess_c, "d": depth + 1}
 
     @staticmethod
-    def populate_guess_map(depth: int, guess: str, guesses: list, i: int, k: dict, matches: list) -> float:
+    def populate_guess_map(depth: int, guess: str, guesses: list, i: int, k: str, matches: list) -> float:
         guess_c = 0.0
         total_matches = len(matches)
         maps = MapsDB()
@@ -96,9 +99,10 @@ class Solver:
                 guess_c += 0  # is this right?
             else:
                 k_r = Knowledge.update_knowledge(k, secret, guess)
-                k_hash = Knowledge.dict_hash(k_r)
+                # k_hash = Knowledge.dict_hash(k_r)
+                k_hash = k_r
                 m = Knowledge.get_possible_matches(k_r, matches)
-                if len(m) / total_matches > 0.9:  # if the matches is the same you didn't get knowlege
+                if len(m) / total_matches > 0.9:  # if the matches is the same you didn't get knowledge
                     return False  # unsure on this one
                 existing_suggestion = maps.get_knowledge(k_hash)
                 if existing_suggestion:
@@ -112,8 +116,8 @@ class Solver:
         return guess_c
 
     @staticmethod
-    def get_suggestion(k: dict, guesses: list, answers: list) -> str:
-        use_stable = True # change if chose to use non-stable
+    def get_suggestion(k: str, guesses: list, answers: list) -> str:
+        use_stable = True  # change if chose to use non-stable
         use_fast = False
         if use_stable:
             return Solver.get_suggestion_stable(k, guesses, answers)
@@ -123,11 +127,11 @@ class Solver:
             sug_obj = Solver.get_suggestion_exp(k, guesses, answers, 0, False)
             return sug_obj["g"]
 
-
     @staticmethod
-    def get_suggestion_stable(k: dict, guess_options: list, answer_options:list) -> str:
+    def get_suggestion_stable(k: str, guess_options: list, answer_options: list) -> str:
         maps = MapsDB()
-        k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
+        # k_hash = Knowledge.dict_hash(k)  # get hash key for suggestion map
+        k_hash = k
         existing_suggestion_knowledge = maps.get_suggestion(k_hash)
         if existing_suggestion_knowledge:
             return existing_suggestion_knowledge
@@ -163,7 +167,7 @@ class Solver:
         return suggested_guess
 
     @staticmethod
-    def get_suggestion_fast(k: dict, guess_options: list, answer_options:list) -> str:
+    def get_suggestion_fast(k: str, guess_options: list, answer_options: list) -> str:
         # get as much insight into the letters we don't know about that are in the remaining words
         # exclude words that
 
