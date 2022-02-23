@@ -10,7 +10,7 @@ class Solver:
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    #@lru_cache(maxsize=None)
     def create_match_map(answers: tuple, guesses: tuple, knowledge: str, wait: bool):
 
         match_map = {}
@@ -30,23 +30,21 @@ class Solver:
 
             for secret_word in answers:
                 k = Knowledge.update_knowledge(knowledge, secret_word, guess)
-                # k_hash = Knowledge.dict_hash(k)
-                k_hash = k
 
                 if guess == secret_word:
                     match_count = 0
-                elif k_hash in knowledge_map:
-                    match_count = knowledge_map[k_hash]
+                elif k in knowledge_map:
+                    match_count = knowledge_map[k]
                 else:
-                    matches = Knowledge.get_possible_matches(k, tuple(answers))
+                    matches = Knowledge.get_possible_matches(k, answers)
                     match_count = len(matches)
-                knowledge_map[k_hash] = match_count
+                knowledge_map[k] = match_count
                 match_map[guess] += match_count / total_words
 
         return match_map
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    #@lru_cache(maxsize=None)
     def get_suggestion_exp(k: str, guesses: tuple, answers: tuple, depth: int, test: bool) -> dict:
         maps = MapsDB()
         existing_suggestion = maps.get_knowledge(k)
@@ -99,12 +97,10 @@ class Solver:
                 guess_c += 0  # is this right?
             else:
                 k_r = Knowledge.update_knowledge(k, secret, guess)
-                # k_hash = Knowledge.dict_hash(k_r)
-                k_hash = k_r
                 m = Knowledge.get_possible_matches(k_r, matches)
                 if len(m) / total_matches > 0.9:  # if the matches is the same you didn't get knowledge
                     return False  # unsure on this one
-                existing_suggestion = maps.get_knowledge(k_hash)
+                existing_suggestion = maps.get_knowledge(k_r)
                 if existing_suggestion:
                     guess_c += (depth + 1) * existing_suggestion["c"] / total_matches
                 elif depth < 1:
@@ -129,14 +125,13 @@ class Solver:
             return sug_obj["g"]
 
     @staticmethod
-    @lru_cache(maxsize=2**25)
     def get_suggestion_stable(k: str, guess_options: tuple, answer_options: tuple) -> str:
         maps = MapsDB()
         existing_suggestion_knowledge = maps.get_suggestion(k)
         if existing_suggestion_knowledge:
             return existing_suggestion_knowledge
 
-        matches = Knowledge.get_possible_matches(k, tuple(answer_options))
+        matches = Knowledge.get_possible_matches(k, answer_options)
 
         if len(matches) < 3:
             suggested_guess = matches[0]
@@ -167,7 +162,7 @@ class Solver:
         return suggested_guess
 
     @staticmethod
-    @lru_cache(maxsize=2**25)
+    #@lru_cache(maxsize=2**25)
     def get_suggestion_fast(k: str, guess_options: tuple, answer_options: tuple) -> str:
         # get as much insight into the letters we don't know about that are in the remaining words
         # exclude words that

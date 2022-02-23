@@ -15,7 +15,7 @@ class Knowledge:
     UNSURE = "_"
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @lru_cache(maxsize=2*20)
     def test_word_for_match(test_word: str, k: str) -> bool:
         """
         @type test_word: basestring
@@ -38,7 +38,7 @@ class Knowledge:
         return True
 
     @staticmethod
-    @lru_cache(maxsize=None)
+    @lru_cache(maxsize=2**20)
     def get_possible_matches(k: str, possible_words: tuple) -> tuple:
         matches = []
         for word in possible_words:
@@ -118,10 +118,10 @@ class TimeTools:
             time_left = int(elapsed_time * progress_to_finish / progress)
             time_left_str = str(datetime.timedelta(seconds=time_left))
             if time_left > 10:
-                print("\033[K", description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
+                print("\r\033[K", description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
                                                                                   str(datetime.timedelta(
                                                                                       seconds=elapsed_time)),
-                                                                                  time_left_str), end="\r")
+                                                                                  time_left_str), end="")
         else:
             print("...", end="\r")
         count += 1

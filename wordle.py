@@ -48,7 +48,7 @@ def populate_db():
 def auto_play(first_guess: str):
     total_secrets = len(ANSWERS)
     total_guesses = 0
-    dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+    dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0}
     dk = Knowledge.default_knowledge()
     for secret in ANSWERS:
         print("\r\033[K", "Target: " + secret, end="")
@@ -65,7 +65,7 @@ def auto_play(first_guess: str):
                 suggestion = Solver.get_suggestion(k, WORDS, ANSWERS)
             if suggestion == secret:
                 dist[try_count] += 1
-                # print("\r\033[K", secret, "in", str(try_count), end="\n")
+                print("\r\033[K", secret, "in", str(try_count), end="\n")
                 break
             else:
                 k = Knowledge.update_knowledge(k, secret, suggestion)
@@ -140,7 +140,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = Knowledge.get_possible_matches(k, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("Suggested guess: " + Solver.get_suggestion(k, WORDS, tuple(matches)))
+            print("\n", "Suggested guess: " + Solver.get_suggestion(k, WORDS, tuple(matches)))
 
         elif len(guess) != Knowledge.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
