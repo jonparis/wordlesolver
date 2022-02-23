@@ -11,7 +11,7 @@ class Knowledge:
     UNSURE = "_"
 
     @staticmethod
-    @lru_cache(maxsize=2 * 20)
+    # @lru_cache(maxsize=2 * 20)
     def test_word_for_match(test_word: str, k: str) -> bool:
         """
         @type test_word: basestring
@@ -35,7 +35,7 @@ class Knowledge:
         return True
 
     @staticmethod
-    @lru_cache(maxsize=2 ** 20)
+    # @lru_cache(maxsize=2 ** 20)
     def get_possible_matches(k: str, possible_words: tuple) -> tuple:
         matches = []
         for word in possible_words:

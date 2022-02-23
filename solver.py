@@ -9,15 +9,14 @@ class Solver:
     def __init__(self, answers, guesses):
         self.answers = answers
         self.guesses = guesses
+        self.kmap = {}
 
     WAIT_FOR_BEST_SUGGESTION = 10 * 10 * 100  # time in seconds to wait for best guess
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
-    @staticmethod
-    @lru_cache(maxsize=2 ** 20)
-    def create_match_map(answers: tuple, guesses: tuple, knowledge: str, wait: bool):
+    # @lru_cache(maxsize=2 ** 20)
+    def create_match_map(self, answers: tuple, guesses: tuple, knowledge: str, wait: bool):
         match_map = {}
-        knowledge_map = {}
         total_words = len(answers)
         counter = 0
         seconds_left = {"count": 1, "seconds_left": -1}
@@ -36,18 +35,18 @@ class Solver:
 
                 if guess == secret_word:
                     match_count = 0
-                elif k in knowledge_map:
-                    match_count = knowledge_map[k]
+                elif k in self.kmap:
+                    match_count = self.kmap[k]
                 else:
                     matches = Knowledge.get_possible_matches(k, answers)
                     match_count = len(matches)
-                knowledge_map[k] = match_count
+                    self.kmap[k] = match_count
                 match_map[guess] += match_count / total_words
 
         return match_map
 
     # @lru_cache(maxsize=None)
-    def get_suggestion_exp(self, k: str, depth: int, guesses: tuple, answers: tuple, test: bool) -> dict:
+    def get_suggestion_exp(self, k: str, guesses: tuple, answers: tuple, depth: int, test: bool) -> dict:
         maps = MapsDB()
         existing_suggestion = maps.get_knowledge(k)
         if existing_suggestion and not test:
@@ -106,7 +105,7 @@ class Solver:
                     guess_c += (depth + 1) * existing_suggestion["c"] / total_matches
                 elif depth < 1:
                     updated_guesses = guesses[:i] + guesses[i + 1:]
-                    b = self.get_suggestion_exp(k_r, depth, updated_guesses, m, False)
+                    b = self.get_suggestion_exp(k_r, updated_guesses, m, depth, False)
                     if b["g"] is False: return False
                     guess_c += b["d"] * b["c"] / total_matches
                 else:
@@ -123,10 +122,10 @@ class Solver:
         elif use_fast:
             return solver.get_suggestion_fast(k)
         else:
-            sug_obj = solver.get_suggestion_exp(k, 0, solver.guesses, solver.answers, False)
+            sug_obj = solver.get_suggestion_exp(k, solver.guesses, solver.answers, 0, False)
             return sug_obj["g"]
 
-    @lru_cache(maxsize=2**20)
+    #@lru_cache(maxsize=2**20)
     def get_suggestion_stable(self, k: str) -> str:
         maps = MapsDB()
         existing_suggestion_knowledge = maps.get_suggestion(k)
