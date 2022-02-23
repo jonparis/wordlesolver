@@ -6,13 +6,18 @@ from solver_model import MapsDB
 
 
 class Solver:
+    def __init__(self, answers, guesses):
+        self.answers = answers
+        self.guesses = guesses
+        self.show_timer = True
+        self.wait_time = 10 * 10 * 100  # time in seconds to wait for best guess
+
     WAIT_FOR_BEST_SUGGESTION = 10 * 10 * 100  # time in seconds to wait for best guess
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
-    #@lru_cache(maxsize=None)
-    def create_match_map(answers: tuple, guesses: tuple, knowledge: str, wait: bool):
-
+    @lru_cache(maxsize=2 ** 20)
+    def create_match_map(answers, guesses, knowledge: str, wait: bool):
         match_map = {}
         knowledge_map = {}
         total_words = len(answers)
@@ -43,9 +48,8 @@ class Solver:
 
         return match_map
 
-    @staticmethod
-    #@lru_cache(maxsize=None)
-    def get_suggestion_exp(k: str, guesses: tuple, answers: tuple, depth: int, test: bool) -> dict:
+    # @lru_cache(maxsize=None)
+    def get_suggestion_exp(self, k: str, depth: int, guesses: tuple, answers: tuple, test: bool) -> dict:
         maps = MapsDB()
         existing_suggestion = maps.get_knowledge(k)
         if existing_suggestion and not test:
@@ -73,7 +77,7 @@ class Solver:
             if Solver.SHOW_TIMER and depth == 0:
                 counter = TimeTools.status_time_estimate(counter, start_time, len(guesses), "M map")
 
-            guess_map[guess] = Solver.populate_guess_map(depth, guess, guesses, i, k, matches)
+            guess_map[guess] = self.populate_guess_map(depth, guess, guesses, i, k, matches)
 
             if guess_map[guess] is not False:
                 if guess_map[guess] <= 1 - 1 / total_matches:
@@ -87,8 +91,7 @@ class Solver:
         if not test: maps.insert_knowledge(k, best_guess, best_guess_c)
         return {"g": best_guess, "c": best_guess_c, "d": depth + 1}
 
-    @staticmethod
-    def populate_guess_map(depth: int, guess: str, guesses: tuple, i: int, k: str, matches: tuple) -> float:
+    def populate_guess_map(self, depth: int, guess: str, guesses: tuple, i: int, k: str, matches: tuple) -> float:
         guess_c = 0.0
         total_matches = len(matches)
         maps = MapsDB()
@@ -105,7 +108,7 @@ class Solver:
                     guess_c += (depth + 1) * existing_suggestion["c"] / total_matches
                 elif depth < 1:
                     updated_guesses = tuple(guesses[:i] + guesses[i + 1:])
-                    b = Solver.get_suggestion_exp(k_r, updated_guesses, m, depth + 1, False)
+                    b = self.get_suggestion_exp(k_r, depth, updated_guesses, m, False)
                     if b["g"] is False: return False
                     guess_c += b["d"] * b["c"] / total_matches
                 else:
@@ -116,37 +119,37 @@ class Solver:
     def get_suggestion(k: str, guesses: tuple, answers: tuple) -> str:
         use_stable = True  # change if chose to use non-stable
         use_fast = False
+        solver = Solver(guesses, answers)
         if use_stable:
-            return Solver.get_suggestion_stable(k, guesses, answers)
+            return solver.get_suggestion_stable(k)
         elif use_fast:
-            return Solver.get_suggestion_fast(k, guesses, answers)
+            return solver.get_suggestion_fast(k)
         else:
-            sug_obj = Solver.get_suggestion_exp(k, guesses, answers, 0, False)
+            sug_obj = solver.get_suggestion_exp(k, 0, solver.guesses, solver.answers, False)
             return sug_obj["g"]
 
-    @staticmethod
-    def get_suggestion_stable(k: str, guess_options: tuple, answer_options: tuple) -> str:
+    def get_suggestion_stable(self, k: str) -> str:
         maps = MapsDB()
         existing_suggestion_knowledge = maps.get_suggestion(k)
         if existing_suggestion_knowledge:
             return existing_suggestion_knowledge
 
-        matches = Knowledge.get_possible_matches(k, answer_options)
+        matches = Knowledge.get_possible_matches(k, self.answers)
 
         if len(matches) < 3:
             suggested_guess = matches[0]
         else:
-            match_map = Solver.create_match_map(matches, guess_options, k, False)
+            match_map = Solver.create_match_map(matches, self.guesses, k, False)
 
             if match_map is False:
-                return Solver.get_suggestion_fast(k, guess_options, matches)
+                return self.get_suggestion_fast(k)
             total_matches = len(matches)
             avg_exg_maybe_match = total_matches
             avg_exc_match = total_matches
             suggested_guess_matching = matches[0]
             suggested_guess_maybe_matching = suggested_guess_matching
 
-            for guess in guess_options:
+            for guess in self.guesses:
                 if match_map[guess] < avg_exc_match and guess in matches:
                     suggested_guess_matching = guess
                     avg_exc_match = match_map[guess]
@@ -161,13 +164,12 @@ class Solver:
         maps.insert_suggestion(k, suggested_guess)
         return suggested_guess
 
-    @staticmethod
-    #@lru_cache(maxsize=2**25)
-    def get_suggestion_fast(k: str, guess_options: tuple, answer_options: tuple) -> str:
+    # @lru_cache(maxsize=2**25)
+    def get_suggestion_fast(self, k: str) -> str:
         # get as much insight into the letters we don't know about that are in the remaining words
         # exclude words that
 
-        matches = Knowledge.get_possible_matches(k, tuple(answer_options))
+        matches = Knowledge.get_possible_matches(k, self.answers)
         letter_count = {}
         focus_letter_count = {}
         in_word_letters = k[Knowledge.IN_WORD]
@@ -183,13 +185,11 @@ class Solver:
                     focus_letter_count[c] += 1.0
 
         max_cov = 0.0
-        suggested_guess = guess_options[0]
+        suggested_guess = self.guesses[0]
         max_focus = 0.0
-        focus_suggested_guess = guess_options[0]
+        focus_suggested_guess = self.guesses[0]
 
-        if total_matches < 2:
-            guess_options = matches
-        for word in guess_options:
+        for word in self.guesses:
             coverage = sum([letter_count[c] for c in set([c for c in word])])
             focus_coverage = sum([focus_letter_count[c] for c in set([c for c in word])])
             if coverage > max_cov:
