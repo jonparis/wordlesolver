@@ -5,17 +5,13 @@ from functools import lru_cache
 
 
 class Knowledge:
-    NOT_IN_WORD = "NIW"
-    IN_WORD = "IW"
-    IN_POSITION = "IP"
-    NOT_IN_POSITION = "NIP"
     WORD_LENGTH = 5
     YES = "Y"
     NO = "N"
     UNSURE = "_"
 
     @staticmethod
-    @lru_cache(maxsize=2*20)
+    @lru_cache(maxsize=2 * 20)
     def test_word_for_match(test_word: str, k: str) -> bool:
         """
         @type test_word: basestring
@@ -27,10 +23,11 @@ class Knowledge:
             in_word = Knowledge.WORD_LENGTH + string.ascii_lowercase.index(c)
             pos_range_start = (1 + i) * 26
             in_pos = pos_range_start + in_word
-            if k[in_word] == Knowledge.NO: return False
-            if k[in_pos] == Knowledge.NO: return False
+            if k[in_word] == Knowledge.NO: return False  # false if c not in word is known
+            if k[in_pos] == Knowledge.NO: return False  # false if c not in pos is known
             if k[i] != Knowledge.UNSURE and c != k[i]: return False
 
+        # false if c not in word, but knowledge says it should be
         for j in range(Knowledge.WORD_LENGTH, Knowledge.WORD_LENGTH + 26):
             c = string.ascii_lowercase[j - Knowledge.WORD_LENGTH]
             if j == Knowledge.YES and c not in test_word:
@@ -38,7 +35,7 @@ class Knowledge:
         return True
 
     @staticmethod
-    @lru_cache(maxsize=2**20)
+    @lru_cache(maxsize=2 ** 20)
     def get_possible_matches(k: str, possible_words: tuple) -> tuple:
         matches = []
         for word in possible_words:
@@ -66,9 +63,8 @@ class Knowledge:
                 k = Knowledge.new_str(k, in_word, Knowledge.YES)
                 k = Knowledge.new_str(k, in_pos, Knowledge.NO)
             else:
-                if k[in_word] != Knowledge.NO:
-                    if k[in_word] != Knowledge.YES:
-                        k = Knowledge.new_str(k, in_word, Knowledge.NO)
+                if k[in_word] == Knowledge.UNSURE:
+                    k = Knowledge.new_str(k, in_word, Knowledge.NO)
         return k
 
     @staticmethod
@@ -119,9 +115,9 @@ class TimeTools:
             time_left_str = str(datetime.timedelta(seconds=time_left))
             if time_left > 10:
                 print("\r\033[K", description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
-                                                                                  str(datetime.timedelta(
-                                                                                      seconds=elapsed_time)),
-                                                                                  time_left_str), end="")
+                                                                                    str(datetime.timedelta(
+                                                                                        seconds=elapsed_time)),
+                                                                                    time_left_str), end="")
         else:
             print("...", end="\r")
         count += 1

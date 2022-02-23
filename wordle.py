@@ -140,7 +140,7 @@ def play_wordle(secret_word, wordlist):
         elif guess == "!!":
             matches = Knowledge.get_possible_matches(k, ANSWERS)
             print("Total: " + str(len(matches)) + " " + str(matches))
-            print("\n", "Suggested guess: " + Solver.get_suggestion(k, WORDS, tuple(matches)))
+            print("\n", "Suggested guess: " + Solver.get_suggestion(k, WORDS, matches))
 
         elif len(guess) != Knowledge.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")

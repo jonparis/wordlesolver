@@ -9,15 +9,13 @@ class Solver:
     def __init__(self, answers, guesses):
         self.answers = answers
         self.guesses = guesses
-        self.show_timer = True
-        self.wait_time = 10 * 10 * 100  # time in seconds to wait for best guess
 
     WAIT_FOR_BEST_SUGGESTION = 10 * 10 * 100  # time in seconds to wait for best guess
     SHOW_TIMER = True  # toggle if you want to see what is taking so long
 
     @staticmethod
     @lru_cache(maxsize=2 ** 20)
-    def create_match_map(answers, guesses, knowledge: str, wait: bool):
+    def create_match_map(answers: tuple, guesses: tuple, knowledge: str, wait: bool):
         match_map = {}
         knowledge_map = {}
         total_words = len(answers)
@@ -56,7 +54,7 @@ class Solver:
             existing_suggestion["d"] = depth + 1
             return existing_suggestion
 
-        matches = Knowledge.get_possible_matches(k, tuple(answers))
+        matches = Knowledge.get_possible_matches(k, answers)
         non_match_guesses = tuple(set(guesses).difference(matches))
         guesses = matches + non_match_guesses  # reorder guesses to try matches first
         total_matches = len(matches)
@@ -107,7 +105,7 @@ class Solver:
                 if existing_suggestion:
                     guess_c += (depth + 1) * existing_suggestion["c"] / total_matches
                 elif depth < 1:
-                    updated_guesses = tuple(guesses[:i] + guesses[i + 1:])
+                    updated_guesses = guesses[:i] + guesses[i + 1:]
                     b = self.get_suggestion_exp(k_r, depth, updated_guesses, m, False)
                     if b["g"] is False: return False
                     guess_c += b["d"] * b["c"] / total_matches
@@ -128,6 +126,7 @@ class Solver:
             sug_obj = solver.get_suggestion_exp(k, 0, solver.guesses, solver.answers, False)
             return sug_obj["g"]
 
+    @lru_cache(maxsize=2**20)
     def get_suggestion_stable(self, k: str) -> str:
         maps = MapsDB()
         existing_suggestion_knowledge = maps.get_suggestion(k)
@@ -139,10 +138,9 @@ class Solver:
         if len(matches) < 3:
             suggested_guess = matches[0]
         else:
-            match_map = Solver.create_match_map(matches, self.guesses, k, False)
+            match_map = self.create_match_map(matches, self.guesses, k, True)
 
-            if match_map is False:
-                return self.get_suggestion_fast(k)
+            if match_map is False: return self.get_suggestion_fast(k)
             total_matches = len(matches)
             avg_exg_maybe_match = total_matches
             avg_exc_match = total_matches
@@ -199,7 +197,7 @@ class Solver:
                 max_focus = focus_coverage
                 focus_suggested_guess = word
 
-        match_map = Solver.create_match_map(matches, (focus_suggested_guess, suggested_guess), k, True)
+        match_map = self.create_match_map(matches, (focus_suggested_guess, suggested_guess), k, True)
 
         narrow_over_try = 1 / match_map[focus_suggested_guess] - 1 / match_map[suggested_guess] - 1 / total_matches
         if focus_suggested_guess and narrow_over_try > 0:
