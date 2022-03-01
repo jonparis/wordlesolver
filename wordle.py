@@ -23,6 +23,7 @@ def populate_db():
         s = Solver(ANSWERS, WORDS, False)
         s.auto_play(word)  # todo can do autoplay and optimize but will take a long time!
 
+
 def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
@@ -194,8 +195,9 @@ if __name__ == "__main__":
     menu = str(input("Your Choice:")).lower()
     solver = Solver(ANSWERS, WORDS, False)
     if menu == 'a':
-        solver = Solver(ANSWERS, WORDS, True)
-        play_wordle(choose_word(ANSWERS), WORDS)
+        solver = Solver(ANSWERS, WORDS, False)
+        #play_wordle(choose_word(ANSWERS), WORDS)
+        play_wordle("wight", WORDS)
     elif menu == 'b':
         solver = Solver(ANSWERS, WORDS, True)
         suggestions_only()
