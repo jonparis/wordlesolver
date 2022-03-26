@@ -5,8 +5,8 @@ import copy
 import random
 from solver import Solver
 from wordle_common import Knowledge, COLORS, Tools, CONST
+import string
 
-WORDLIST_FILENAME = "words.txt"
 GUESSES_FILE = "words-guesses.txt"
 
 
@@ -17,9 +17,9 @@ def choose_word(wordlist):
 def populate_db():
     top_100 = ("raise", "raile", "soare", "arise", "irate", "orate", "ariel", "arose", "raine", "artel", "taler", "ratel", "aesir", "arles", "realo", "alter", "saner", "later", "snare", "oater", "salet", "taser", "stare", "tares", "slate", "alert", "reais", "lares", "reast", "strae", "laser", "saine", "rales", "urate", "crate", "serai", "toile", "seral", "rates", "carte", "antre", "slane", "trace", "coate", "carle", "carse", "stoae", "reals", "terai", "aeros", "liane", "tears", "caret", "stale", "alure", "slier", "resat", "sorel", "tales", "nares", "aisle", "litre", "saice", "learn", "earnt", "oriel", "earst", "lears", "paire", "reoil", "alone", "teras", "urase", "leant", "aloes", "torse", "aster", "arets", "least", "soler", "reans", "retia", "laten", "siler", "anole", "crane", "trone", "laers", "earls", "stear", "atone", "ayrie", "trail", "stane", "react", "haole", "teals", "maire", "toise", "tiler")
     recs = ("salet", "reast", "crate", "trace", "slate", "crane")
+    s = Solver(WORDS, False)
     for word in recs + top_100:
         print("starting word: " + word)
-        s = Solver(WORDS, False)
         s.auto_play(word)  # todo can do autoplay and optimize but will take a long time!
 
 
@@ -27,42 +27,42 @@ def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
 
-    def decorate_word_with_knowledge(kn: dict, word: str) -> str:
+    def decorate_word_with_knowledge(kn: list, word: str) -> str:
         decorated_word = ""
-        word = list(word)
         local_in_word = []
+        word = list(word)
         for i in range(CONST.WORD_LENGTH):
-            c = word[i]
-            word[i] = ""
-            if c == kn[i][CONST.IN_POSITION]:
+            c = string.ascii_lowercase.index(word[i])
+            p = (2 * 26) + 26 * i
+
+            if kn[p] == CONST.YES:
                 local_in_word.append(c)
                 color = COLORS.GREEN
-            elif c in kn[CONST.IN_WORD] and (c not in local_in_word or c in kn[CONST.IN_MULTI]):
+            elif kn[c] == CONST.YES and (c not in local_in_word or kn[c + 26] == CONST.YES):
                 local_in_word.append(c)
                 color = COLORS.YELLOW
-            elif c:
-                color = COLORS.GREY
             else:
-                color = " "
-            decorated_word += color + c + COLORS.SPACE_COLOR
+                color = COLORS.GREY
+            decorated_word += color + string.ascii_lowercase[c] + COLORS.SPACE_COLOR
         return decorated_word + "\n\n"
 
-    def show_decorated_keyboard(kn: dict):
+    def show_decorated_keyboard(kn: list):
+        i = 0
         for c in 'qwertyuiopasdfghjklzxcvbnm':
             if c == 'a' or c == 'z':
                 print("\n")
-            in_position = False
-            for i in range(CONST.WORD_LENGTH):
-                if c == kn[i][CONST.IN_POSITION]:
-                    in_position = True
-            if in_position:
-                color = COLORS.GREEN
-            elif c in kn[CONST.IN_WORD]:
-                color = COLORS.YELLOW
-            elif c in kn[CONST.NOT_IN_WORD]:
-                color = COLORS.GREY
-            else:
-                color = COLORS.BLACK
+            ci = string.ascii_lowercase.index(c)
+            in_pos = False
+            for j in range(CONST.WORD_LENGTH):
+                p = (2 * 26) + (26 * j) + ci
+                if kn[p] == CONST.YES: in_pos = True
+
+            i += 1
+            if in_pos: color = COLORS.GREEN
+            elif kn[ci] == CONST.YES: color = COLORS.YELLOW
+            elif kn[ci] == CONST.NO: color = COLORS.GREY
+            else: color = COLORS.BLACK
+
             print(color + c, end=COLORS.SPACE_COLOR)
         print("\n")
 
@@ -71,6 +71,7 @@ def play_wordle(secret_word, wordlist):
     print("I am thinking of a word that is " + str(CONST.WORD_LENGTH) + " letters long.")
     attempts = ""
     k = Knowledge.default_knowledge()
+    m = ANSWERS
     prev_guesses = ()
 
     while remaining_guesses > 0:
@@ -98,8 +99,8 @@ def play_wordle(secret_word, wordlist):
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
             print("Total: " + str(len(m)) + " " + str(m))
-            print("Suggested guess: " + solver.get_suggestion_stable(k))
             print(k)
+            print("Suggested guess: " + solver.get_suggestion_stable(k))
 
         elif len(guess) != CONST.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
@@ -109,7 +110,7 @@ def play_wordle(secret_word, wordlist):
         # review guess
         else:
             k = Knowledge.update_knowledge(k, secret_word, guess)
-            m = Knowledge.get_possible_matches(k, solver.answers)
+            m = solver.get_matches(k)
             attempts += decorate_word_with_knowledge(k, guess)
             print(attempts)
             remaining_guesses -= 1
@@ -172,7 +173,7 @@ def play_again():
 if __name__ == "__main__":
     # Play wordle mode
     WORDS = tuple(Tools.load_words(GUESSES_FILE))
-    ANSWERS = WORDS[CONST.ANSWERS_LEN:]
+    ANSWERS = WORDS[:CONST.ANSWERS_LEN]
 
     print("do you want to:")
     print("A. Play Wordle here!")
@@ -181,15 +182,16 @@ if __name__ == "__main__":
     print("D. Populate DB!")
 
     menu = str(input("Your Choice:")).lower()
-    solver = Solver(WORDS, False)
     if menu == 'a':
-        solver = Solver(WORDS, False)
+        solver = Solver(WORDS, True)
+        # play_wordle(choose_word(ANSWERS), WORDS)
         play_wordle("lefty", WORDS)
-        #play_wordle(choose_word(ANSWERS), WORDS)
     elif menu == 'b':
         solver = Solver(WORDS, True)
         suggestions_only()
     elif menu == 'c':
+        solver = Solver(WORDS, False)
         solver.auto_play("salet")  # todo can do more here
     elif menu == 'd':
+        solver = Solver(WORDS, False)
         populate_db()

@@ -2,6 +2,9 @@ import copy
 import string
 import time
 import datetime
+import hashlib
+import json
+import cProfile
 
 
 # noinspection PyClassHasNoInit
@@ -14,6 +17,7 @@ class CONST:
     NOT_IN_POSITION = "NIP"
     WORD_LENGTH = 5
     ANSWERS_LEN = 2315
+    GUESSES_LEN = 12972
     PER = 4  # confidence cannot be improved upon unless guess/answer list changes
     HIGH = 3  # confidence in guess after reviewing all guesses. Only needs update better sub_guess is found
     MED = 2  # confidence in guess after full optimization
@@ -22,216 +26,94 @@ class CONST:
     YES = 2  # letter in position or word
     NO = 1  # letter not in position / word
     UNSURE = 0  # unsure if letter in position / word
+    # kmap object positions
     GUESS = 0  # guess
     AGTS = 1  # average_guesses_to_solve
     C = 2  # confidence
     M = 3  # match_count
     OPT = 4  # optimized_to
-    map = {PER: "Perfect", HIGH: "High", MED: "Medium", LOW: "Low", VERY_LOW: "Very low"}
 
 
 # noinspection PyClassHasNoInit
 class Knowledge:
-    @staticmethod
-    def standardize_knowledge(k: dict) -> dict:
-        k[CONST.IN_WORD] = sorted(set(k[CONST.IN_WORD]))
-        k[CONST.NOT_IN_WORD] = sorted(set(k[CONST.NOT_IN_WORD]))
-        k[CONST.IN_MULTI] = sorted(set(k[CONST.IN_MULTI]))
-        k[CONST.NOT_IN_MULTI] = sorted(set(k[CONST.NOT_IN_MULTI]))
-        for i in range(CONST.WORD_LENGTH):
-            k[i][CONST.NOT_IN_POSITION] = sorted(set(k[i][CONST.NOT_IN_POSITION]))
-        return k
 
     @staticmethod
-    def test_word_for_match(test_word: str, k: dict) -> bool:
-        # remove words that include letters known not to be in word
-        for c in k[CONST.IN_WORD]:
-            if c not in test_word:
-                return False
-        for c in k[CONST.IN_MULTI]:
-            if test_word.count(c) < 2:
-                return False
-        for c in k[CONST.NOT_IN_MULTI]:
-            if test_word.count(c) > 1:
-                return False
-        for i in range(CONST.WORD_LENGTH):
-            c = test_word[i]
-            if c in k[CONST.NOT_IN_WORD]:
-                return False
-            if k[i][CONST.IN_POSITION] and c != k[i][CONST.IN_POSITION]:
-                return False
-            if c in k[i][CONST.NOT_IN_POSITION]:
-                return False
-        return True
-
-    @staticmethod
-    def get_possible_matches(k: dict, possible_words: tuple) -> tuple:
-        matches = []
-        for word in possible_words:
-            if Knowledge.test_word_for_match(word, k):
-                matches.append(word)
-        return tuple(matches)
-
-    @staticmethod
-    def update_knowledge(k: dict, secret_word: str, guess: str) -> dict:
-        k = copy.deepcopy(k)
-        d = Knowledge.default_knowledge()
+    def update_knowledge(k: tuple, secret_word: str, guess: str) -> tuple:
+        k = list(k)
+        d = Knowledge.empty_k_list()  # use to track in-word in-multi locally
         guess = list(str(guess).lower())  # make sure guess is in lower case
         secret_word = list(secret_word)
+        for i in range(CONST.WORD_LENGTH):
+            guess[i] = string.ascii_lowercase.index(guess[i])
+            secret_word[i] = string.ascii_lowercase.index(secret_word[i])
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
             if c == secret_word[i]:
                 guess[i] = secret_word[i] = ""
-                if c in d[CONST.IN_WORD]: d[CONST.IN_MULTI].append(c)
-                d[CONST.IN_WORD].append(c)
-                d[i][CONST.IN_POSITION] = c
+                if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
+                k[c] = d[c] = CONST.YES
+                k[c + (2 * 26) + (26 * i)] = CONST.YES
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
             if c != "":
                 if c in secret_word:
                     p = secret_word.index(c)
                     guess[i] = secret_word[p] = ""
-                    if c in d[CONST.IN_WORD]: d[CONST.IN_MULTI].append(c)
-                    d[CONST.IN_WORD].append(c)
-                    d[i][CONST.NOT_IN_POSITION].append(c)
+                    if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
+                    k[c] = d[c] = CONST.YES
+                    k[c + (2 * 26) + (26 * i)] = CONST.NO
                 else:
-                    if c not in d[CONST.IN_WORD]: d[CONST.NOT_IN_WORD].append(c)
-                    elif c not in d[CONST.IN_MULTI]: d[CONST.NOT_IN_MULTI].append(c)
-                    d[i][CONST.NOT_IN_POSITION].append(c)
-        k = Knowledge.join_knowledge(k, d)
-        return Knowledge.standardize_knowledge(k)
+                    if d[c] != CONST.YES: k[c] = d[c] = CONST.NO
+                    elif d[c + 26] != CONST.YES: k[c + 26] = d[c + 26] = CONST.NO
+                    k[c + (2 * 26) + (26 * i)] = CONST.NO
+        return tuple(k)
 
     @staticmethod
-    def update_knowledge_from_colors(k: dict, guess: str, color_feedback: str) -> dict:
-        k = copy.deepcopy(k)
-        d = Knowledge.default_knowledge()
+    def update_knowledge_from_colors(k: tuple, guess: str, color_feedback: str) -> tuple:
+        k = list(k)
+        d = Knowledge.empty_k_list()
         guess = list(str(guess).lower())  # make sure guess is in lower case
         color_feedback = list(color_feedback.upper())
         for i in range(CONST.WORD_LENGTH):
-            c = guess[i]
-            f = color_feedback[i]
-            if f == "G":
-                guess[i] = color_feedback[i] = ""
-                if c in d[CONST.IN_WORD]: d[CONST.IN_MULTI].append(c)
-                d[CONST.IN_WORD].append(c)
-                d[i][CONST.IN_POSITION] = c
+            guess[i] = string.ascii_lowercase.index(guess[i])
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
-            f = color_feedback[i]
-            if f == "Y":
+            if color_feedback[i] == "G":
                 guess[i] = ""
-                if c in d[CONST.IN_WORD]: d[CONST.IN_MULTI].append(c)
-                d[CONST.IN_WORD].append(c)
-                d[i][CONST.NOT_IN_POSITION].append(c)
+                if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
+                k[c] = d[c] = CONST.YES
+                k[c + (2 * 26) + (26 * i)] = CONST.YES
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
-            f = color_feedback[i]
-            if c != "" and f == "R":
-                if c not in d[CONST.IN_WORD]:
-                    d[CONST.NOT_IN_WORD].append(c)
-                elif c not in d[CONST.IN_MULTI]:
-                    d[CONST.NOT_IN_MULTI].append(c)
-                d[i][CONST.NOT_IN_POSITION].append(c)
-        k = Knowledge.join_knowledge(k, d)
-        return Knowledge.standardize_knowledge(k)
-
-    @staticmethod
-    def join_knowledge(k1: dict, k2: dict) -> dict:
-        k = {CONST.IN_WORD: list(set(k1[CONST.IN_WORD]) | set(k2[CONST.IN_WORD])),
-             CONST.NOT_IN_WORD: list(set(k1[CONST.NOT_IN_WORD]) | set(k2[CONST.NOT_IN_WORD])),
-             CONST.IN_MULTI: list(set(k1[CONST.IN_MULTI]) | set(k2[CONST.IN_MULTI])),
-             CONST.NOT_IN_MULTI: list(set(k1[CONST.NOT_IN_MULTI]) | set(k2[CONST.NOT_IN_MULTI]))}
+            if color_feedback[i] == "Y":
+                guess[i] = ""
+                if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
+                k[c] = d[c] = CONST.YES
+                k[c + (2 * 26) + (26 * i)] = CONST.NO
         for i in range(CONST.WORD_LENGTH):
-            k[i] = {CONST.IN_POSITION: False, CONST.NOT_IN_POSITION: []}
-            if k1[i][CONST.IN_POSITION]: k[i][CONST.IN_POSITION] = k1[i][CONST.IN_POSITION]
-            elif k2[i][CONST.IN_POSITION]: k[i][CONST.IN_POSITION] = k2[i][CONST.IN_POSITION]
-            k[i][CONST.NOT_IN_POSITION] = list(set(k1[i][CONST.NOT_IN_POSITION]) | set(k2[i][CONST.NOT_IN_POSITION]))
-        return k
+            c = guess[i]
+            if color_feedback[i] == "Y" and c != "":
+                if d[c] != CONST.YES: k[c] = d[c] = CONST.NO
+                elif d[c + 26] != CONST.YES: k[c + 26] = d[c + 26] = CONST.NO
+                k[c + (2 * 26) + (26 * i)] = CONST.NO
+        return tuple(k)
 
     @staticmethod
-    def default_knowledge() -> dict:
-        k = {CONST.IN_WORD: [], CONST.NOT_IN_WORD: [], CONST.IN_MULTI: [], CONST.NOT_IN_MULTI: []}
-        for i in range(CONST.WORD_LENGTH):
-            k[i] = {CONST.NOT_IN_POSITION: [], CONST.IN_POSITION: False}
-        return Knowledge.standardize_knowledge(k)
-
-    @staticmethod
-    def k_int_to_list(k_int: int) -> list:
+    def k_int_to_list(k_int: int) -> tuple:
         if k_int == 0: return [0]
         k_list = []
+        list_len = 7 * 26
         while k_int:
             k_list.append(int(k_int % 3))
             k_int //= 3
-        return k_list  # [::-1] uncomment to reverse
+        for _ in range(list_len - len(k_list)): k_list.append(0)
+        return tuple(k_list)  # [::-1] uncomment to reverse
 
     @staticmethod
-    def k_list_to_int(k_list: list) -> int:
+    def k_list_to_int(k_list: tuple) -> int:
         k_int = 0
         for i in range(len(k_list)): k_int += k_list[i] * 3 ** i
         return k_int
-
-    @staticmethod
-    def k_dict_to_list(k_dict: dict) -> list:
-        k_list = Knowledge.empty_k_list()
-        ps = 0  # work info in positions 0-25. 26-52 position 1, etc
-        for c in k_dict[CONST.IN_WORD]:
-            k_list[string.ascii_lowercase.index(c)] = CONST.YES
-        for c in k_dict[CONST.NOT_IN_WORD]:
-            k_list[string.ascii_lowercase.index(c)] = CONST.NO
-        ps += 26
-        for c in k_dict[CONST.IN_MULTI]:
-            k_list[ps + string.ascii_lowercase.index(c)] = CONST.YES
-        for c in k_dict[CONST.NOT_IN_MULTI]:
-            k_list[ps + string.ascii_lowercase.index(c)] = CONST.NO
-        for i in range(CONST.WORD_LENGTH):
-            ps += 26
-            c = k_dict[i][CONST.IN_POSITION]
-            if c: k_list[ps + string.ascii_lowercase.index(c)] = CONST.YES
-            for c in k_dict[i][CONST.NOT_IN_POSITION]:
-                k_list[ps + string.ascii_lowercase.index(c)] = CONST.NO
-
-        return k_list
-
-    @staticmethod
-    def k_dict_to_int(k_dict: dict) -> int:
-        k_list = Knowledge.k_dict_to_list(k_dict)
-        return Knowledge.k_list_to_int(k_list)
-
-    @staticmethod
-    def k_list_to_dict(k_list: list) -> dict:
-        k_len = len(k_list)
-        k_dict = Knowledge.default_knowledge()
-        sp = 0
-        for i in range(26):
-            c = string.ascii_lowercase[i]
-            if i >= k_len: return k_dict  # no more info. Return!
-            if k_list[i] == CONST.YES and c not in k_dict[CONST.IN_WORD]:
-                k_dict[CONST.IN_WORD].append(c)
-            if k_list[i] == CONST.NO and c not in k_dict[CONST.NOT_IN_WORD]:
-                k_dict[CONST.NOT_IN_WORD].append(c)
-        sp += 26
-        for i in range(26):
-            c = string.ascii_lowercase[i]
-            if i + sp >= k_len: return k_dict  # no more info. Return!
-            if k_list[i + sp] == CONST.YES and c not in k_dict[CONST.IN_MULTI]:
-                k_dict[CONST.IN_MULTI].append(c)
-            if k_list[i + sp] == CONST.NO and c not in k_dict[CONST.NOT_IN_MULTI]:
-                k_dict[CONST.NOT_IN_MULTI].append(c)
-        for p in range(CONST.WORD_LENGTH):
-            sp += 26
-            for i in range(26):
-                c = string.ascii_lowercase[i]
-                if i + sp >= k_len: return k_dict  # no more info Return!
-                if k_list[i + sp] == CONST.YES: k_dict[p][CONST.IN_POSITION] = c
-                if k_list[i + sp] == CONST.NO and c not in k_dict[p][CONST.NOT_IN_POSITION]:
-                    k_dict[p][CONST.NOT_IN_POSITION].append(c)
-        return k_dict
-
-    @staticmethod
-    def k_int_to_dict(k_int: int) -> dict:
-        k_list = Knowledge.k_int_to_list(k_int)
-        k_dict = Knowledge.k_list_to_dict(k_list)
-        return Knowledge.standardize_knowledge(k_dict)
 
     @staticmethod
     def empty_k_list():
@@ -239,6 +121,10 @@ class Knowledge:
         # not or in word, not or in multi, then not or in position
         for _ in range(26 + 26 + 26 * CONST.WORD_LENGTH): k_list.append(0)
         return k_list
+
+    @staticmethod
+    def default_knowledge():
+        return tuple(Knowledge.empty_k_list())
 
 
 # noinspection PyClassHasNoInit
@@ -259,44 +145,18 @@ class Tools:
         return chosen_word_length
 
     @staticmethod
-    def get_time_estimate(count: int, start_time: time, total_count: int) -> dict:
-        time_now = time.time()
-        elapsed_time = int(time_now - start_time)
+    def profileme(func):
+        def profiled(*args, **kwargs):
+            profile = cProfile.Profile()
+            try:
+                profile.enable()
+                result = func(*args, **kwargs)
+                profile.disable()
+                return result
+            finally:
+                profile.print_stats()
 
-        if total_count == 0:
-            return -1
-        progress = count / total_count
-        progress_to_finish = 1 - count / total_count
-
-        seconds_left = -1
-        if count > 1:
-            seconds_left = int(elapsed_time * progress_to_finish / progress)
-
-        return seconds_left
-
-    @staticmethod
-    def timer(count: int, start_time: time, total_matches: int, description: str) -> int:
-        # Set timer to make sure the process won't take too long
-        time_now = time.time()
-        elapsed_time = int(time_now - start_time)
-
-        if total_matches == 0:
-            return 0
-        progress = count / total_matches
-        progress_to_finish = 1 - count / total_matches
-        if progress != 0:
-            time_left = int(elapsed_time * progress_to_finish / progress)
-            time_left_str = str(datetime.timedelta(seconds=time_left))
-            if time_left > 10:
-                print("\r\033[K", description + " {0}% done. Time left ~{2}".format(format(progress * 100, '.2f'),
-                                                                                    str(datetime.timedelta(
-                                                                                        seconds=elapsed_time)),
-                                                                                    time_left_str), end="")
-        else:
-            print("", description, "...")
-        count += 1
-
-        return count
+        return profiled
 
 
 # noinspection PyClassHasNoInit
