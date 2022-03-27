@@ -174,7 +174,7 @@ class Solver:
                   best_guess, COLORS.SPACE_COLOR)
         if not self.fast:
             self.kmap[kint] = self.kmap_new[kint] = (best_guess, best_agts, conf, total_matches, to_test)
-            if len(self.kmap_new) > 100: self.save_maps_to_db()
+            if len(self.kmap_new) > 1000: self.save_maps_to_db()
         return best_guess
 
     def get_suggestion_fast(self, k: tuple) -> str:

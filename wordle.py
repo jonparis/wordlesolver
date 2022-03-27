@@ -16,7 +16,7 @@ def choose_word(wordlist):
 
 def populate_db():
     s = Solver(WORDS, False)
-    for word in Tools.first_words:
+    for word in Tools.first_words + s.answers:
         print("starting word: " + word)
         s.auto_play(word)  # todo can do autoplay and optimize but will take a long time!
 
