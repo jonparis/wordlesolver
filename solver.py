@@ -214,7 +214,7 @@ class Solver:
         temp_kmap = {}
         total_matches = len(matches)
         total_guesses = 0
-        dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+        dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0}
         for i in range(len(matches)):
             secret = matches[i]
             if self.debug: print("\r\033[K", "Target: " + secret, end="")
