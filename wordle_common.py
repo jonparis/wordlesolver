@@ -130,6 +130,8 @@ class Knowledge:
 # noinspection PyClassHasNoInit
 class Tools:
 
+    first_words = ("salet", "reast", "crate", "trace", "slate", "crane","raise", "raile", "soare", "arise", "irate", "orate", "ariel", "arose", "raine", "artel", "taler", "ratel", "ocean", "steal")
+
     @staticmethod
     def load_words(file_name):
         print("Loading word list...")

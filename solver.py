@@ -24,8 +24,7 @@ class Solver:
         self.knowledge_default = Knowledge.default_knowledge()
         self.exclude_prev = True
         self.answer_map = self.build_answer_map()
-        if self.fast is False: self.bucket_lookup = self.build_bucket_lookup()  # comment out.
-        self.rec_first_words = ("salet", "reast", "crate", "trace", "slate", "crane")
+        if self.fast is False: self.bucket_lookup = self.build_bucket_lookup()
 
     def build_answer_map(self):
         answer_map = {}
@@ -180,7 +179,6 @@ class Solver:
 
     def get_suggestion_fast(self, k: tuple) -> str:
         # get as much insight into the letters we don't know about that are in the remaining words
-        # exclude words that
         guesses = self.guesses
         matches = self.get_matches(k)
         letter_count = {}
@@ -244,14 +242,13 @@ class Solver:
                         temp_kmap[kint]["agts"] = t_g / t_m
                     if self.debug: print("\r\033[K", secret, "in", str(try_count), prev_guesses, end="\n")
                     if self.exclude_prev: self.previous_solutions.append(self.guesses.index(guess))
-                    if prev_guess in self.rec_first_words: print(kint, prev_guesses)  # for printing answers for starting word
+                    if prev_guess in Tools.first_words: print(kint, prev_guesses)  # for printing answers for starting word
                     break
                 k = Knowledge.update_knowledge(k, secret, guess)
         avg = total_guesses / total_matches
         avg_f = format(avg, '.9f')
-        if total_guesses > 20:  # supress small options
+        if total_guesses > 7900:  # supress small options
             print("\r\033[K", prev_guess, total_guesses, avg_f, str(dist), self.max_depth, end="\n")
-        if total_guesses > 7900 and prev_guess in self.rec_first_words: self.previous_solutions = []
         return avg
 
     # @Tools.profileme  # remove comment to get profile where there are bottlenecks

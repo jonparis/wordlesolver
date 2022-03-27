@@ -15,10 +15,8 @@ def choose_word(wordlist):
 
 
 def populate_db():
-    top_100 = ("raise", "raile", "soare", "arise", "irate", "orate", "ariel", "arose", "raine", "artel", "taler", "ratel", "aesir", "arles", "realo", "alter", "saner", "later", "snare", "oater", "salet", "taser", "stare", "tares", "slate", "alert", "reais", "lares", "reast", "strae", "laser", "saine", "rales", "urate", "crate", "serai", "toile", "seral", "rates", "carte", "antre", "slane", "trace", "coate", "carle", "carse", "stoae", "reals", "terai", "aeros", "liane", "tears", "caret", "stale", "alure", "slier", "resat", "sorel", "tales", "nares", "aisle", "litre", "saice", "learn", "earnt", "oriel", "earst", "lears", "paire", "reoil", "alone", "teras", "urase", "leant", "aloes", "torse", "aster", "arets", "least", "soler", "reans", "retia", "laten", "siler", "anole", "crane", "trone", "laers", "earls", "stear", "atone", "ayrie", "trail", "stane", "react", "haole", "teals", "maire", "toise", "tiler")
-    recs = ("salet", "reast", "crate", "trace", "slate", "crane")
     s = Solver(WORDS, False)
-    for word in recs + top_100:
+    for word in Tools.first_words:
         print("starting word: " + word)
         s.auto_play(word)  # todo can do autoplay and optimize but will take a long time!
 
@@ -99,7 +97,6 @@ def play_wordle(secret_word, wordlist):
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
             print("Total: " + str(len(m)) + " " + str(m))
-            print(k)
             print("Suggested guess: " + solver.get_suggestion_stable(k))
 
         elif len(guess) != CONST.WORD_LENGTH:
@@ -184,8 +181,7 @@ if __name__ == "__main__":
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
         solver = Solver(WORDS, True)
-        # play_wordle(choose_word(ANSWERS), WORDS)
-        play_wordle("lefty", WORDS)
+        play_wordle(choose_word(ANSWERS), WORDS)
     elif menu == 'b':
         solver = Solver(WORDS, True)
         suggestions_only()

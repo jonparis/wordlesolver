@@ -11,3 +11,8 @@ __pycache__/solver.cpython-37.pyc
 __pycache__/solver.cpython-37.pyc
 __pycache__/solver_model.cpython-37.pyc
 __pycache__/wordle_common.cpython-37.pyc
+*.pyc
+*.pyc
+__pycache__/solver.cpython-37.pyc
+__pycache__/solver_model.cpython-37.pyc
+__pycache__/wordle_common.cpython-37.pyc
