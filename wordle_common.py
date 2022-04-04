@@ -9,29 +9,30 @@ import cProfile
 
 # noinspection PyClassHasNoInit
 class CONST:
-    NOT_IN_WORD = "NIW"
-    IN_WORD = "IW"
-    IN_MULTI = "IM"
-    NOT_IN_MULTI = "NIM"
-    IN_POSITION = "IP"
-    NOT_IN_POSITION = "NIP"
     WORD_LENGTH = 5
     ANSWERS_LEN = 2315
     GUESSES_LEN = 12972
-    PER = 4  # confidence cannot be improved upon unless guess/answer list changes
-    HIGH = 3  # confidence in guess after reviewing all guesses. Only needs update better sub_guess is found
-    MED = 2  # confidence in guess after full optimization
-    LOW = 1  # confidence in guess low, default after quick optimization
-    VERY_LOW = 0  # confidence in guess very low needs optimizing
+
+    start_option = 1
+    # KNOWLEDGE ORDER: WORD / POS / MULTI2 / MULTI3
+    if start_option == 1:
+        MULTI2 = 26 * (1 + WORD_LENGTH)  # where in knowledge list info on 2+ characters stored
+        MULTI3 = MULTI2 + 26  # where in knowledge list, info on 3+ characters stored
+        POSITION_START = 26
+        WORD_K_START = 0
+
+    # KNOWELEDGE ORDER: MULTI3 / MULTI2 / POS / WORD
+    if start_option == 2:
+        MULTI3 = 0  # where in knowledge list, info on 3+ characters stored
+        MULTI2 = 26  # where in knowledge list info on 2+ characters stored
+        POSITION_START = 52
+        WORD_K_START = (2 + WORD_LENGTH) * 26
+    
     YES = 2  # letter in position or word
     NO = 1  # letter not in position / word
     UNSURE = 0  # unsure if letter in position / word
-    # kmap object positions
-    GUESS = 0  # guess
-    AGTS = 1  # average_guesses_to_solve
-    C = 2  # confidence
-    M = 3  # match_count
-    OPT = 4  # optimized_to
+    EMPTY_MATCH_INTS = tuple(range(0, ANSWERS_LEN))
+    EMPTY_KNOWLEDGE = tuple([0 for _ in range(26 * (3 + WORD_LENGTH))])
 
 
 # noinspection PyClassHasNoInit
@@ -40,69 +41,75 @@ class Knowledge:
     @staticmethod
     def update_knowledge(k: tuple, secret_word: str, guess: str) -> tuple:
         k = list(k)
-        d = Knowledge.empty_k_list()  # use to track in-word in-multi locally
+        d = list(CONST.EMPTY_KNOWLEDGE)  # use to track in-word in-multi locally
         guess = list(str(guess).lower())  # make sure guess is in lower case
         secret_word = list(secret_word)
         for i in range(CONST.WORD_LENGTH):
-            guess[i] = string.ascii_lowercase.index(guess[i])
+            c = guess[i] = string.ascii_lowercase.index(guess[i])
             secret_word[i] = string.ascii_lowercase.index(secret_word[i])
-        for i in range(CONST.WORD_LENGTH):
-            c = guess[i]
             if c == secret_word[i]:
                 guess[i] = secret_word[i] = ""
-                if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
-                k[c] = d[c] = CONST.YES
-                k[c + (2 * 26) + (26 * i)] = CONST.YES
+                if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES  # > 2 char
+                if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
+                k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
+                k[c + CONST.POSITION_START + (26 * i)] = CONST.YES
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
             if c != "":
                 if c in secret_word:
                     p = secret_word.index(c)
                     guess[i] = secret_word[p] = ""
-                    if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
-                    k[c] = d[c] = CONST.YES
-                    k[c + (2 * 26) + (26 * i)] = CONST.NO
+                    if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES
+                    if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES
+                    k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
+                    k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
                 else:
-                    if d[c] != CONST.YES: k[c] = d[c] = CONST.NO
-                    elif d[c + 26] != CONST.YES: k[c + 26] = d[c + 26] = CONST.NO
-                    k[c + (2 * 26) + (26 * i)] = CONST.NO
+                    if d[c + CONST.WORD_K_START] != CONST.YES: k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.NO
+                    elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
+                    elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
+                    if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO  # ignore "not in pos" if not in word (saves time)
+        if CONST.WORD_K_START == 0: r = (26, len(k))
+        else: r = (CONST.MULTI3, CONST.WORD_K_START)
+        for i in range(r[0], r[1]):
+            if k[i] == CONST.YES: k[CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
         return tuple(k)
 
     @staticmethod
     def update_knowledge_from_colors(k: tuple, guess: str, color_feedback: str) -> tuple:
         k = list(k)
-        d = Knowledge.empty_k_list()
+        d = list(CONST.EMPTY_KNOWLEDGE)
         guess = list(str(guess).lower())  # make sure guess is in lower case
         color_feedback = list(color_feedback.upper())
         for i in range(CONST.WORD_LENGTH):
-            guess[i] = string.ascii_lowercase.index(guess[i])
-        for i in range(CONST.WORD_LENGTH):
-            c = guess[i]
+            c = guess[i] = string.ascii_lowercase.index(guess[i])
             if color_feedback[i] == "G":
                 guess[i] = ""
-                if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
-                k[c] = d[c] = CONST.YES
-                k[c + (2 * 26) + (26 * i)] = CONST.YES
+                if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES  # > 2 char
+                if d[c] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
+                k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
+                k[c + CONST.POSITION_START + (26 * i)] = CONST.YES
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
             if color_feedback[i] == "Y":
                 guess[i] = ""
-                if d[c] == CONST.YES: k[c + 26] = d[c + 26] = CONST.YES
-                k[c] = d[c] = CONST.YES
-                k[c + (2 * 26) + (26 * i)] = CONST.NO
+                if d[c + CONST.POSITION_START] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES
+                if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.POSITION_START] = d[c + CONST.POSITION_START] = CONST.YES
+                k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
+                if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
             if color_feedback[i] == "Y" and c != "":
-                if d[c] != CONST.YES: k[c] = d[c] = CONST.NO
-                elif d[c + 26] != CONST.YES: k[c + 26] = d[c + 26] = CONST.NO
-                k[c + (2 * 26) + (26 * i)] = CONST.NO
+                if d[c + CONST.WORD_K_START] != CONST.YES: k[c] = d[c + CONST.WORD_K_START] = CONST.NO
+                elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
+                elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
+                k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
         return tuple(k)
 
     @staticmethod
     def k_int_to_list(k_int: int) -> tuple:
         if k_int == 0: return [0]
         k_list = []
-        list_len = 7 * 26
+        list_len = (3 + CONST.WORD_LENGTH) * 26
         while k_int:
             k_list.append(int(k_int % 3))
             k_int //= 3
@@ -114,17 +121,6 @@ class Knowledge:
         k_int = 0
         for i in range(len(k_list)): k_int += k_list[i] * 3 ** i
         return k_int
-
-    @staticmethod
-    def empty_k_list():
-        k_list = []
-        # not or in word, not or in multi, then not or in position
-        for _ in range(26 + 26 + 26 * CONST.WORD_LENGTH): k_list.append(0)
-        return k_list
-
-    @staticmethod
-    def default_knowledge():
-        return tuple(Knowledge.empty_k_list())
 
 
 # noinspection PyClassHasNoInit

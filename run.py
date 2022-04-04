@@ -14,11 +14,18 @@ def choose_word(wordlist):
     return random.choice(wordlist)
 
 
-def populate_db():
-    s = Solver(WORDS, False)
-    for word in Tools.first_words + s.answers:
-        print("starting word: " + word)
-        s.auto_play(word)  # todo can do autoplay and optimize but will take a long time!
+def letter_count(answers):
+    multi3 = []
+    multi4 = []
+    for a in answers:
+        for i in string.ascii_lowercase:
+            if a.count(i) == 3: multi3.append(a)
+            if a.count(i) >= 4: multi4.append(a)
+
+    print("words with 3 of the same:", str(multi3))
+    print("words with 4 or more of same:", str(multi4))
+
+
 
 
 def play_wordle(secret_word, wordlist):
@@ -31,7 +38,7 @@ def play_wordle(secret_word, wordlist):
         word = list(word)
         for i in range(CONST.WORD_LENGTH):
             c = string.ascii_lowercase.index(word[i])
-            p = (2 * 26) + 26 * i
+            p = 26 + 26 * i
 
             if kn[p] == CONST.YES:
                 local_in_word.append(c)
@@ -52,7 +59,7 @@ def play_wordle(secret_word, wordlist):
             ci = string.ascii_lowercase.index(c)
             in_pos = False
             for j in range(CONST.WORD_LENGTH):
-                p = (2 * 26) + (26 * j) + ci
+                p = 26 + (26 * j) + ci
                 if kn[p] == CONST.YES: in_pos = True
 
             i += 1
@@ -68,7 +75,7 @@ def play_wordle(secret_word, wordlist):
     print("Welcome to Wordle!")
     print("I am thinking of a word that is " + str(CONST.WORD_LENGTH) + " letters long.")
     attempts = ""
-    k = Knowledge.default_knowledge()
+    k = CONST.EMPTY_KNOWLEDGE
     m = ANSWERS
     prev_guesses = ()
 
@@ -122,7 +129,7 @@ def suggestions_only():
     remaining_guesses = total_guesses
     prev_guesses = ()
 
-    k = Knowledge.default_knowledge()
+    k = CONST.EMPTY_KNOWLEDGE
 
     # starting welcome
     print("Welcome to Wordle Helper!")
@@ -147,7 +154,7 @@ def suggestions_only():
 
             k = Knowledge.update_knowledge_from_colors(k, guess, new_knowledge)
 
-            matches = Knowledge.get_possible_matches(copy.deepcopy(k), solver.answers)
+            matches = solver.get_matches(k)
             total_matches = len(matches)
             print("Total: " + str(total_matches) + " " + str(matches))
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
@@ -177,17 +184,30 @@ if __name__ == "__main__":
     print("B. Get help playing wordle somewhere else.")
     print("C. Auto Play to test solver!")
     print("D. Populate DB!")
+    print("E. Optimize Solver!")
 
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
-        solver = Solver(WORDS, True)
+        solver = Solver(WORDS, True, {"optimize": False})
         play_wordle(choose_word(ANSWERS), WORDS)
     elif menu == 'b':
-        solver = Solver(WORDS, True)
+        solver = Solver(WORDS, True, {"optimize": False})
         suggestions_only()
     elif menu == 'c':
-        solver = Solver(WORDS, False)
+        solver = Solver(WORDS, False, {"optimize": False})
         solver.auto_play("salet")  # todo can do more here
     elif menu == 'd':
-        solver = Solver(WORDS, False)
-        populate_db()
+        s = Solver(WORDS, False, {"optimize": False})
+        s.auto_play()
+    elif menu == 'e':
+        min_depth = int(input("min_depth for optimization (recommend '0'): "))
+        max_depth = int(input("max depth for optimization (recommend '200'): "))
+        starting_word = str(input("word starting guess to optimize for (e.g. 'reast'): ")).lower()
+        s = Solver(WORDS, False, {"optimize": True, "min": min_depth, "max": max_depth, "starting_word": starting_word})
+        s.auto_play()
+    elif menu == 'f':
+        letter_count(ANSWERS)
+    elif menu == 'g':
+        s = Solver(WORDS, False, {"optimize": True, "min": 0, "max": 15, "starting_word": ""})
+        s.purge_unused()
+
