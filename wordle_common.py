@@ -83,7 +83,7 @@ class Knowledge:
         for i in range(CONST.WORD_LENGTH):
             c = guess[i] = string.ascii_lowercase.index(guess[i])
             if color_feedback[i] == "G":
-                guess[i] = ""
+                guess[i] = color_feedback[i] = ""
                 if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES  # > 2 char
                 if d[c] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
                 k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
@@ -98,11 +98,17 @@ class Knowledge:
                 if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
-            if color_feedback[i] == "Y" and c != "":
-                if d[c + CONST.WORD_K_START] != CONST.YES: k[c] = d[c + CONST.WORD_K_START] = CONST.NO
-                elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
-                elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
-                k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
+            if c != "":
+                if color_feedback[i] == "Y":
+                    if d[c + CONST.WORD_K_START] != CONST.YES: k[c] = d[c + CONST.WORD_K_START] = CONST.NO
+                    elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
+                    elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
+                    k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
+                else:
+                    if d[c + CONST.WORD_K_START] != CONST.YES: k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.NO
+                    elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
+                    elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
+                    if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO  # ignore "not in pos" if not in word (saves time)
         return tuple(k)
 
     @staticmethod
