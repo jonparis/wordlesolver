@@ -85,30 +85,27 @@ class Knowledge:
             if color_feedback[i] == "G":
                 guess[i] = color_feedback[i] = ""
                 if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES  # > 2 char
-                if d[c] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
+                if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
                 k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
                 k[c + CONST.POSITION_START + (26 * i)] = CONST.YES
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
-            if color_feedback[i] == "Y":
-                guess[i] = ""
-                if d[c + CONST.POSITION_START] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES
-                if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.POSITION_START] = d[c + CONST.POSITION_START] = CONST.YES
-                k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
-                if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
-        for i in range(CONST.WORD_LENGTH):
-            c = guess[i]
             if c != "":
                 if color_feedback[i] == "Y":
-                    if d[c + CONST.WORD_K_START] != CONST.YES: k[c] = d[c + CONST.WORD_K_START] = CONST.NO
-                    elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
-                    elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
-                    k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
+                    guess[i] = ""
+                    if d[c + CONST.POSITION_START] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES
+                    if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.POSITION_START] = d[c + CONST.POSITION_START] = CONST.YES
+                    k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
+                    if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
                 else:
                     if d[c + CONST.WORD_K_START] != CONST.YES: k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.NO
                     elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
                     elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
                     if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO  # ignore "not in pos" if not in word (saves time)
+        if CONST.WORD_K_START == 0: r = (26, len(k))
+        else: r = (CONST.MULTI3, CONST.WORD_K_START)
+        for i in range(r[0], r[1]):
+            if k[i] == CONST.YES: k[CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
         return tuple(k)
 
     @staticmethod
