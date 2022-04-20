@@ -26,8 +26,6 @@ def letter_count(answers):
     print("words with 4 or more of same:", str(multi4))
 
 
-
-
 def play_wordle(secret_word, wordlist):
     total_guesses = 6
     remaining_guesses = 6
@@ -182,9 +180,10 @@ if __name__ == "__main__":
     print("do you want to:")
     print("A. Play Wordle here!")
     print("B. Get help playing wordle somewhere else.")
-    print("C. Auto Play to test solver!")
-    print("D. Populate DB!")
-    print("E. Optimize Solver!")
+    print("C. Autoplay and Populate DB!")
+    print("D. Optimize Solver!")
+    print("E. Count of multiple use of letters in words")
+    print("F. Purge Database to best solutions")
 
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
@@ -194,20 +193,17 @@ if __name__ == "__main__":
         solver = Solver(WORDS, True, {"optimize": False})
         suggestions_only()
     elif menu == 'c':
-        solver = Solver(WORDS, False, {"optimize": False})
-        solver.auto_play("salet")  # todo can do more here
-    elif menu == 'd':
         s = Solver(WORDS, False, {"optimize": False})
         s.auto_play()
-    elif menu == 'e':
+    elif menu == 'd':
         min_depth = int(input("min_depth for optimization (recommend '0'): "))
         max_depth = int(input("max depth for optimization (recommend '200'): "))
         starting_word = str(input("word starting guess to optimize for (e.g. 'reast'): ")).lower()
         s = Solver(WORDS, False, {"optimize": True, "min": min_depth, "max": max_depth, "starting_word": starting_word})
         s.auto_play()
-    elif menu == 'f':
+    elif menu == 'e':
         letter_count(ANSWERS)
-    elif menu == 'g':
+    elif menu == 'f':
         s = Solver(WORDS, False, {"optimize": True, "min": 0, "max": 15, "starting_word": ""})
         s.purge_unused()
 

@@ -37,7 +37,3 @@ class MapsDB:
         db_conn.execute(
             "INSERT OR REPLACE INTO KMAP (ID, GINT, PERFECT) VALUES ('" + str(kint) + "', " + str(kmap[0]) + ", " + str(kmap[1]) + ")")
         db_conn.commit()
-
-
-    def close_db(self):
-        self.db_conn.close()
