@@ -15,19 +15,11 @@ class CONST:
 
     start_option = 1
     # KNOWLEDGE ORDER: WORD / POS / MULTI2 / MULTI3
-    if start_option == 1:
-        MULTI2 = 26 * (1 + WORD_LENGTH)  # where in knowledge list info on 2+ characters stored
-        MULTI3 = MULTI2 + 26  # where in knowledge list, info on 3+ characters stored
-        POSITION_START = 26
-        WORD_K_START = 0
+    MULTI2 = 26 * (1 + WORD_LENGTH)  # where in knowledge list info on 2+ characters stored
+    MULTI3 = MULTI2 + 26  # where in knowledge list, info on 3+ characters stored
+    POSITION_START = 26
+    WORD_K_START = 0
 
-    # KNOWELEDGE ORDER: MULTI3 / MULTI2 / POS / WORD
-    if start_option == 2:
-        MULTI3 = 0  # where in knowledge list, info on 3+ characters stored
-        MULTI2 = 26  # where in knowledge list info on 2+ characters stored
-        POSITION_START = 52
-        WORD_K_START = (2 + WORD_LENGTH) * 26
-    
     YES = 2  # letter in position or word
     NO = 1  # letter not in position / word
     UNSURE = 0  # unsure if letter in position / word
@@ -49,28 +41,17 @@ class Knowledge:
             secret_word[i] = string.ascii_lowercase.index(secret_word[i])
             if c == secret_word[i]:
                 guess[i] = secret_word[i] = ""
-                if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES  # > 2 char
-                if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
-                k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
-                k[c + CONST.POSITION_START + (26 * i)] = CONST.YES
+                Knowledge.update_in_position(c, d, i, k)
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
             if c != "":
                 if c in secret_word:
                     p = secret_word.index(c)
                     guess[i] = secret_word[p] = ""
-                    if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES
-                    if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES
-                    k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
-                    k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
+                    Knowledge.update_in_word(c, d, i, k)
                 else:
-                    if d[c + CONST.WORD_K_START] != CONST.YES: k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.NO
-                    elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
-                    elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
-                    if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO  # ignore "not in pos" if not in word (saves time)
-        if CONST.WORD_K_START == 0: r = (26, len(k))
-        else: r = (CONST.MULTI3, CONST.WORD_K_START)
-        for i in range(r[0], r[1]):
+                    Knowledge.update_not_in_word(c, d, i, k)
+        for i in range(26, len(k)):
             if k[i] == CONST.YES: k[CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
         return tuple(k)
 
@@ -84,29 +65,43 @@ class Knowledge:
             c = guess[i] = string.ascii_lowercase.index(guess[i])
             if color_feedback[i] == "G":
                 guess[i] = color_feedback[i] = ""
-                if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES  # > 2 char
-                if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
-                k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
-                k[c + CONST.POSITION_START + (26 * i)] = CONST.YES
+                Knowledge.update_in_position(c, d, i, k)
         for i in range(CONST.WORD_LENGTH):
             c = guess[i]
             if c != "":
                 if color_feedback[i] == "Y":
                     guess[i] = ""
-                    if d[c + CONST.POSITION_START] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES
-                    if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.POSITION_START] = d[c + CONST.POSITION_START] = CONST.YES
-                    k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
-                    if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
+                    Knowledge.update_in_word(c, d, i, k)
                 else:
-                    if d[c + CONST.WORD_K_START] != CONST.YES: k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.NO
-                    elif d[c + CONST.MULTI2] != CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
-                    elif d[c + CONST.MULTI3] != CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
-                    if d[c + CONST.WORD_K_START] != CONST.NO: k[c + CONST.POSITION_START + (26 * i)] = CONST.NO  # ignore "not in pos" if not in word (saves time)
-        if CONST.WORD_K_START == 0: r = (26, len(k))
-        else: r = (CONST.MULTI3, CONST.WORD_K_START)
-        for i in range(r[0], r[1]):
+                    Knowledge.update_not_in_word(c, d, i, k)
+        for i in range(26, len(k)):
             if k[i] == CONST.YES: k[CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
         return tuple(k)
+
+    @staticmethod
+    def update_in_position(c, d, i, k):
+        if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES  # > 2 char
+        if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES  # > 1 char
+        k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
+        k[c + CONST.POSITION_START + (26 * i)] = CONST.YES
+
+    @staticmethod
+    def update_in_word(c, d, i, k):
+        if d[c + CONST.MULTI2] == CONST.YES: k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.YES
+        if d[c + CONST.WORD_K_START] == CONST.YES: k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.YES
+        k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.YES
+        k[c + CONST.POSITION_START + (26 * i)] = CONST.NO
+
+    @staticmethod
+    def update_not_in_word(c, d, i, k):
+        if d[c + CONST.WORD_K_START] != CONST.YES:
+            k[c + CONST.WORD_K_START] = d[c + CONST.WORD_K_START] = CONST.NO
+        elif d[c + CONST.MULTI2] != CONST.YES:
+            k[c + CONST.MULTI2] = d[c + CONST.MULTI2] = CONST.NO
+        elif d[c + CONST.MULTI3] != CONST.YES:
+            k[c + CONST.MULTI3] = d[c + CONST.MULTI3] = CONST.NO
+        if d[c + CONST.WORD_K_START] != CONST.NO: k[
+            c + CONST.POSITION_START + (26 * i)] = CONST.NO  # ignore "not in pos" if not in word (saves time)
 
     @staticmethod
     def k_int_to_list(k_int: int) -> tuple:
