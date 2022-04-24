@@ -22,14 +22,17 @@ class Solver:
         self.max_depth = 0
         self.log_entropy_optimizations = {}
         self.optimize_deeper = to_optimize["optimize"]
-        self.to_test_depth = 10
+        self.to_test_depth_default = 15
+        self.to_test_depth = 15
         self.to_test_min_depth = 0
         self.starting_guess = ""
         self.purge_flag = False
+        self.to_print = False
         if self.optimize_deeper:
             self.to_test_min_depth = to_optimize["min"]
-            self.to_test_depth = to_optimize["max"]
+            self.to_test_depth_max = to_optimize["max"]
             self.starting_guess = to_optimize["starting_word"]
+            if "to_print" in to_optimize: self.to_print = to_optimize["to_print"]
         self.first_guesses = []
         self.save_post_purge = False
 
@@ -110,7 +113,7 @@ class Solver:
         for k in self.kmap_new: 
             if self.kmap_new[k][1] == 2: self.kmap_new[k] = (self.kmap_new[k][0], 0)
             self.maps.insert_knowledge(k, self.kmap_new[k])
-        print(str(len(self.kmap_new)), "kmap saved")
+        if self.debug: print(str(len(self.kmap_new)), "kmap saved")
         self.kmap_new = {}
 
     def create_entropy_map(self, matches: tuple) -> dict:
@@ -167,7 +170,7 @@ class Solver:
         if kint == 0 and len(self.first_guesses) == 0 and self.purge_flag:
             for g in guesses_to_test: self.first_guesses.append(self.guesses[g])
             self.optimize_deeper = False
-            return guesses_to_test[0]
+            return self.guesses[guesses_to_test[0]]
         #  if kint == 0: print("First approximation of best guesses", str([self.guesses[i] for 'i' in guesses_to_test]))
 
         best_agts = 10  # arbitrarily high
@@ -242,6 +245,7 @@ class Solver:
         total_matches = len(matches)
         total_guesses = 0
         dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0}
+        starting_kint = Knowledge.k_list_to_int(starting_knowledge)
         for i in range(len(matches)):
             secret = matches[i]
             if self.debug: print("\r\033[K", "Target: " + secret, end="")
@@ -253,16 +257,16 @@ class Solver:
             while guess != secret:
                 try_count += 1
                 total_guesses += 1
-                if try_count == 1 and prev_guess and len(prev_guess) == CONST.WORD_LENGTH:
-                    guess = prev_guess
+                if prev_guess == self.starting_guess and self.optimize_deeper: self.to_test_depth = self.to_test_depth_max
+                else: self.to_test_depth = self.to_test_depth_default
+                if try_count == 1 and prev_guess and len(prev_guess) == CONST.WORD_LENGTH: guess = prev_guess
                 else: guess = self.get_suggestion_stable(k)
                 prev_guesses = prev_guesses + tuple([guess])
-                if try_count == 2:
-                    kint = Knowledge.k_list_to_int(k)
+                if try_count == 2: kint = Knowledge.k_list_to_int(k)
                 if guess == secret:
                     dist[try_count] += 1
-                    if self.debug: print("\r\033[K", secret, "in", str(try_count), prev_guesses, end="\n")
-                    if self.debug and prev_guess in Tools.first_words: print(kint, prev_guesses)  # for printing answers for starting word
+                    if self.to_print and starting_kint == 0: print(str(prev_guesses)[1:-1], end="\n")
+                    if self.debug and starting_kint == 0: print(kint, str(prev_guesses)[1:-1])  # for printing answers for starting word
                     break
                 k = Knowledge.update_knowledge(k, secret, guess)
         avg = total_guesses / total_matches
@@ -270,7 +274,6 @@ class Solver:
         if total_guesses > 7900:
             self.save_maps_to_db()
             print("\r\033[K", prev_guess, total_guesses, avg_f, str(dist), self.max_depth, end="\n")
-            if self.max_depth > 10: print(self.log_entropy_optimizations)
             self.max_depth = 0
         return avg
 

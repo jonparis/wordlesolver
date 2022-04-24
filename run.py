@@ -184,6 +184,7 @@ if __name__ == "__main__":
     print("D. Optimize Solver!")
     print("E. Count of multiple use of letters in words")
     print("F. Purge Database to best solutions")
+    print("G. Print solutions for starting word")
 
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
@@ -206,4 +207,8 @@ if __name__ == "__main__":
     elif menu == 'f':
         s = Solver(WORDS, False, {"optimize": True, "min": 0, "max": 15, "starting_word": ""})
         s.purge_unused()
+    elif menu == 'g':
+        starting_word = str(input("Starting word to print solutions (e.g. 'salet'): ")).lower()
+        s = Solver(WORDS, False, {"optimize": True, "min": 0, "max": 0, "starting_word": starting_word, "to_print": True })
+        s.auto_play()
 
