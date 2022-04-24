@@ -3,6 +3,7 @@
 # Collaborators: Joey Paris, Nathan Paris
 import copy
 import random
+import time
 from solver import Solver
 from wordle_common import Knowledge, COLORS, Tools, CONST
 import string
@@ -185,6 +186,7 @@ if __name__ == "__main__":
     print("E. Count of multiple use of letters in words")
     print("F. Purge Database to best solutions")
     print("G. Print solutions for starting word")
+    print("H. Speed test to solve")
 
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
@@ -197,18 +199,30 @@ if __name__ == "__main__":
         s = Solver(WORDS, False, {"optimize": False})
         s.auto_play()
     elif menu == 'd':
-        min_depth = int(input("min_depth for optimization (recommend '0'): "))
-        max_depth = int(input("max depth for optimization (recommend '200'): "))
+        top_level = int(input("top-level estimates to test (recommend '100'): "))
+        next_levels = int(input("next-level estimates to test (recommend '8'): "))
+        
         starting_word = str(input("word starting guess to optimize for (e.g. 'reast'): ")).lower()
-        s = Solver(WORDS, False, {"optimize": True, "min": min_depth, "max": max_depth, "starting_word": starting_word})
+        s = Solver(WORDS, False, {"optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word})
         s.auto_play()
     elif menu == 'e':
         letter_count(ANSWERS)
     elif menu == 'f':
-        s = Solver(WORDS, False, {"optimize": True, "min": 0, "max": 15, "starting_word": ""})
+        s = Solver(WORDS, False, {"optimize": True, "next_levels": 0, "top_level": 15, "starting_word": ""})
         s.purge_unused()
     elif menu == 'g':
         starting_word = str(input("Starting word to print solutions (e.g. 'salet'): ")).lower()
-        s = Solver(WORDS, False, {"optimize": True, "min": 0, "max": 0, "starting_word": starting_word, "to_print": True })
+        s = Solver(WORDS, False, {"optimize": True, "next_levels": 0, "top_level": 0, "starting_word": starting_word, "to_print": True })
         s.auto_play()
+    elif menu == 'h':
+        starting_word = str(input("Starting word to print solutions (e.g. 'salet'): ")).lower()
+        top_level = int(input("top-level estimates to test (recommend '100'): "))
+        next_levels = int(input("next-level estimates to test (recommend '8'): "))
+        start_time = time.time()
+        s = Solver(WORDS, False, {"optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word})
+        s.auto_play()
+        print(str(time.time() - start_time), "seconds")
+
+
+
 

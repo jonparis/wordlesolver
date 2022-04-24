@@ -22,15 +22,15 @@ class Solver:
         self.max_depth = 0
         self.log_entropy_optimizations = {}
         self.optimize_deeper = to_optimize["optimize"]
-        self.to_test_depth_default = 15
+        self.to_test_top_level = 15
+        self.to_test_next_levels = 15
         self.to_test_depth = 15
-        self.to_test_min_depth = 0
         self.starting_guess = ""
         self.purge_flag = False
         self.to_print = False
         if self.optimize_deeper:
-            self.to_test_min_depth = to_optimize["min"]
-            self.to_test_depth_max = to_optimize["max"]
+            self.to_test_next_levels = to_optimize["next_levels"]
+            self.to_test_top_level = self.to_test_depth_max = to_optimize["top_level"]
             self.starting_guess = to_optimize["starting_word"]
             if "to_print" in to_optimize: self.to_print = to_optimize["to_print"]
         self.first_guesses = []
@@ -165,7 +165,7 @@ class Solver:
 
         # avoid regressing if we've found a better guess in previous deeper pass
         if kint in self.kmap:
-            guesses_to_test = self.e_map[match_ints] = [self.kmap[kint][0]] + guesses_to_test[self.to_test_min_depth:]
+            guesses_to_test = self.e_map[match_ints] = [self.kmap[kint][0]] + guesses_to_test
 
         if kint == 0 and len(self.first_guesses) == 0 and self.purge_flag:
             for g in guesses_to_test: self.first_guesses.append(self.guesses[g])
@@ -257,8 +257,8 @@ class Solver:
             while guess != secret:
                 try_count += 1
                 total_guesses += 1
-                if prev_guess == self.starting_guess and self.optimize_deeper: self.to_test_depth = self.to_test_depth_max
-                else: self.to_test_depth = self.to_test_depth_default
+                if prev_guess == self.starting_guess: self.to_test_depth = self.to_test_top_level
+                else: self.to_test_depth = self.to_test_next_levels
                 if try_count == 1 and prev_guess and len(prev_guess) == CONST.WORD_LENGTH: guess = prev_guess
                 else: guess = self.get_suggestion_stable(k)
                 prev_guesses = prev_guesses + tuple([guess])
