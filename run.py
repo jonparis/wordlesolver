@@ -103,7 +103,7 @@ def play_wordle(secret_word, wordlist):
         # if asking for potential matches show list and suggest the best match
         elif guess == "!!":
             print("Total: " + str(len(m)) + " " + str(m))
-            print("Suggested guess: " + solver.get_suggestion_stable(k))
+            print("Suggested guess: " + solver.get_suggestion_stable(k, prev_guesses))
 
         elif len(guess) != CONST.WORD_LENGTH:
             print("Sorry, " + guess + " is not a " + str(len(secret_word)) + " letter word. Try again.")
@@ -158,7 +158,7 @@ def suggestions_only():
             print("Total: " + str(total_matches) + " " + str(matches))
             hint = str(input("Want a suggestion? (y/n)")).lower()[0]
             if hint == "y":
-                print("Suggested guess: " + solver.get_suggestion_stable(k))
+                print("Suggested guess: " + solver.get_suggestion_stable(k, prev_guesses))
                 print(k)
             remaining_guesses -= 1
         else:
@@ -187,41 +187,46 @@ if __name__ == "__main__":
     print("F. Purge Database to best solutions")
     print("G. Print solutions for starting word")
     print("H. Speed test to solve")
+    print("I. Profile performance of solver")
 
+    hard = True if str(input("Hard Mode (y/n):")).lower() == 'y' else False
     menu = str(input("Your Choice:")).lower()
     if menu == 'a':
-        solver = Solver(WORDS, True, {"optimize": False})
+        solver = Solver(WORDS, {"optimize": False, "hard": hard, "fast": True})
         play_wordle(choose_word(ANSWERS), WORDS)
     elif menu == 'b':
-        solver = Solver(WORDS, True, {"optimize": False})
+        solver = Solver(WORDS, {"optimize": False, "hard": hard, "fast": True})
         suggestions_only()
     elif menu == 'c':
-        s = Solver(WORDS, False, {"optimize": False})
+        s = Solver(WORDS, {"optimize": False, "hard": hard, "fast": False})
         s.auto_play()
     elif menu == 'd':
         top_level = int(input("top-level estimates to test (recommend '100'): "))
         next_levels = int(input("next-level estimates to test (recommend '8'): "))
-        
         starting_word = str(input("word starting guess to optimize for (e.g. 'reast'): ")).lower()
-        s = Solver(WORDS, False, {"optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word})
+        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word, "hard": hard})
         s.auto_play()
     elif menu == 'e':
         letter_count(ANSWERS)
     elif menu == 'f':
-        s = Solver(WORDS, False, {"optimize": True, "next_levels": 0, "top_level": 15, "starting_word": ""})
+        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": 1, "top_level": 15, "starting_word": "", "hard": hard})
         s.purge_unused()
     elif menu == 'g':
         starting_word = str(input("Starting word to print solutions (e.g. 'salet'): ")).lower()
-        s = Solver(WORDS, False, {"optimize": True, "next_levels": 0, "top_level": 0, "starting_word": starting_word, "to_print": True })
+        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": 0, "top_level": 0, "starting_word": starting_word, "to_print": True, "hard": hard})
         s.auto_play()
     elif menu == 'h':
         starting_word = str(input("Starting word to print solutions (e.g. 'salet'): ")).lower()
         top_level = int(input("top-level estimates to test (recommend '100'): "))
         next_levels = int(input("next-level estimates to test (recommend '8'): "))
         start_time = time.time()
-        s = Solver(WORDS, False, {"optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word})
+        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word, "hard": hard})
         s.auto_play()
         print(str(time.time() - start_time), "seconds")
+    elif menu == "i":
+        s = Solver(WORDS, {"starting_word": "salet", "hard": hard})
+        s.auto_play_profile()
+
 
 
 

@@ -24,6 +24,7 @@ class CONST:
     NO = 1  # letter not in position / word
     UNSURE = 0  # unsure if letter in position / word
     EMPTY_MATCH_INTS = tuple(range(0, ANSWERS_LEN))
+    EMPTY_GUESS_INTS = tuple(range(0, GUESSES_LEN))
     EMPTY_KNOWLEDGE = tuple([0 for _ in range(26 * (3 + WORD_LENGTH))])
 
 
