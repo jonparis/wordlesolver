@@ -160,12 +160,6 @@ class Solver:
 
         return {k: v for k, v in sorted(e_map.items(), key=operator.itemgetter(1), reverse=True)}
 
-    @staticmethod
-    def get_suggestion(k: tuple) -> str:
-        solver = Solver(guesses, {"optimize": False, "fast": True})
-        suggestion = solver.get_suggestion_stable(k, ())
-        return suggestion
-
     def get_suggestion_stable(self, k: tuple, prev_guesses: tuple) -> str:
         kint = Knowledge.k_list_to_int(k)
 
