@@ -10,7 +10,7 @@ import cProfile
 # noinspection PyClassHasNoInit
 class CONST:
     WORD_LENGTH = 5
-    ANSWERS_LEN = 2315
+    ANSWERS_LEN = 12972 # 2315 (original answers)
     GUESSES_LEN = 12972
 
     start_option = 1
