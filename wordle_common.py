@@ -1,16 +1,11 @@
-import copy
-import string
-import time
-import datetime
-import hashlib
-import json
 import cProfile
+import string
 
 
 # noinspection PyClassHasNoInit
 class CONST:
     WORD_LENGTH = 5
-    ANSWERS_LEN = 12972 # 2315 (original answers)
+    ANSWERS_LEN = 12972  # 2315 (original answers)
     GUESSES_LEN = 12972
 
     start_option = 1
@@ -53,7 +48,8 @@ class Knowledge:
                 else:
                     Knowledge.update_not_in_word(c, d, i, k)
         for i in range(26, len(k)):
-            if k[i] == CONST.YES: k[CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
+            if k[i] == CONST.YES: k[
+                CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
         return tuple(k)
 
     @staticmethod
@@ -76,7 +72,8 @@ class Knowledge:
                 else:
                     Knowledge.update_not_in_word(c, d, i, k)
         for i in range(26, len(k)):
-            if k[i] == CONST.YES: k[CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
+            if k[i] == CONST.YES: k[
+                CONST.WORD_K_START + (i % 26)] = CONST.UNSURE  # if you know "in pos" forget "in word" save time
         return tuple(k)
 
     @staticmethod

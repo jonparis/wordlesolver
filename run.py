@@ -1,12 +1,12 @@
 # Wordle Game and Solver
 # Name: Jon Paris
 # Collaborators: Joey Paris, Nathan Paris
-import copy
 import random
+import string
 import time
+
 from solver import Solver
 from wordle_common import Knowledge, COLORS, Tools, CONST
-import string
 
 GUESSES_FILE = "words-guesses.txt"
 
@@ -20,8 +20,10 @@ def letter_count(answers):
     multi4 = []
     for a in answers:
         for i in string.ascii_lowercase:
-            if a.count(i) == 3: multi3.append(a)
-            if a.count(i) >= 4: multi4.append(a)
+            if a.count(i) == 3:
+                multi3.append(a)
+            if a.count(i) >= 4:
+                multi4.append(a)
 
     print("words with 3 of the same:", str(multi3))
     print("words with 4 or more of same:", str(multi4))
@@ -59,13 +61,18 @@ def play_wordle(secret_word, wordlist):
             in_pos = False
             for j in range(CONST.WORD_LENGTH):
                 p = 26 + (26 * j) + ci
-                if kn[p] == CONST.YES: in_pos = True
+                if kn[p] == CONST.YES:
+                    in_pos = True
 
             i += 1
-            if in_pos: color = COLORS.GREEN
-            elif kn[ci] == CONST.YES: color = COLORS.YELLOW
-            elif kn[ci] == CONST.NO: color = COLORS.GREY
-            else: color = COLORS.BLACK
+            if in_pos:
+                color = COLORS.GREEN
+            elif kn[ci] == CONST.YES:
+                color = COLORS.YELLOW
+            elif kn[ci] == CONST.NO:
+                color = COLORS.GREY
+            else:
+                color = COLORS.BLACK
 
             print(color + c, end=COLORS.SPACE_COLOR)
         print("\n")
@@ -204,30 +211,30 @@ if __name__ == "__main__":
         top_level = int(input("top-level estimates to test (recommend '100'): "))
         next_levels = int(input("next-level estimates to test (recommend '8'): "))
         starting_word = str(input("word starting guess to optimize for (e.g. 'reast'): ")).lower()
-        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word, "hard": hard})
+        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": next_levels, "top_level": top_level,
+                           "starting_word": starting_word, "hard": hard})
         s.auto_play()
     elif menu == 'e':
         letter_count(ANSWERS)
     elif menu == 'f':
-        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": 1, "top_level": 15, "starting_word": "", "hard": hard})
+        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": 1, "top_level": 15, "starting_word": "",
+                           "hard": hard})
         s.purge_unused()
     elif menu == 'g':
         starting_word = str(input("Starting word to print solutions (e.g. 'salet'): ")).lower()
-        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": 0, "top_level": 0, "starting_word": starting_word, "to_print": True, "hard": hard})
+        s = Solver(WORDS,
+                   {"fast": False, "optimize": True, "next_levels": 0, "top_level": 0, "starting_word": starting_word,
+                    "to_print": True, "hard": hard})
         s.auto_play()
     elif menu == 'h':
         starting_word = str(input("Starting word to print solutions (e.g. 'salet'): ")).lower()
         top_level = int(input("top-level estimates to test (recommend '100'): "))
         next_levels = int(input("next-level estimates to test (recommend '8'): "))
         start_time = time.time()
-        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": next_levels, "top_level": top_level, "starting_word": starting_word, "hard": hard})
+        s = Solver(WORDS, {"fast": False, "optimize": True, "next_levels": next_levels, "top_level": top_level,
+                           "starting_word": starting_word, "hard": hard})
         s.auto_play()
         print(str(time.time() - start_time), "seconds")
     elif menu == "i":
         s = Solver(WORDS, {"starting_word": "salet", "hard": hard})
         s.auto_play_profile()
-
-
-
-
-

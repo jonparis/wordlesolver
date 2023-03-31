@@ -1,7 +1,6 @@
-from wordle_common import Knowledge, CONST, Tools
-from solver import Solver
-from solver_model import MapsDB
 import unittest
+
+from wordle_common import Knowledge, CONST
 
 
 # noinspection SpellCheckingInspection,PyAttributeOutsideInit
@@ -17,7 +16,7 @@ class UnitTestCase(unittest.TestCase):
 
     def test_default_list_len(self):
         default_list = CONST.EMPTY_KNOWLEDGE
-        self.assertEqual(26*8, len(default_list), 'wrong best word')
+        self.assertEqual(26 * 8, len(default_list), 'wrong best word')
 
     def test_in_word_from_default(self):
         knowledge = CONST.EMPTY_KNOWLEDGE
@@ -38,8 +37,8 @@ class UnitTestCase(unittest.TestCase):
         inp4 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
         inm2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         inm3 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        k_list = iniw + inp0 + inp1 + inp2 + inp3 + inp4 + inm2 + inm3 
-        kint = Knowledge.k_list_to_int(k_list)
+        k_list = iniw + inp0 + inp1 + inp2 + inp3 + inp4 + inm2 + inm3
+        kint = Knowledge.k_list_to_int(tuple(k_list))
         k_list_return = Knowledge.k_int_to_list(kint)
         self.assertEqual(2, k_list_return[0], 'wrong "a" in word')
         self.assertEqual(0, k_list_return[1], 'wrong "b" in word')
@@ -76,6 +75,7 @@ class UnitTestCase(unittest.TestCase):
         k_list = Knowledge.k_int_to_list(khash)
         iniw = (2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         self.assertEqual(k_list[:26], iniw[:26][:len(k_list[:26])], 'not_in_word knowledge failed')
+
 
 if __name__ == "__main__":
     unittest.main()
