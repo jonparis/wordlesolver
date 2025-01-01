@@ -20,5 +20,5 @@ and get the best guess to solve the game in the fewest tries.
 ## Note: On the suggestions
 The suggested guesses have been tested solving the game in an average of 3.42592 guesses (if  starting with 'salet')
 
-You use and share this solver with nicer user interface at https://wordle.jnparis.com.
+You use and share this solver with nicer user interface at https://jonparis.pythonanywhere.com
 
