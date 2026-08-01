@@ -2,10 +2,22 @@
 
 A python based tool suggested words for wordle.
 
+## Setup
+
+`wordle.db` (the cache of solved positions) is stored with [Git LFS](https://git-lfs.com),
+so you need it installed before cloning or pulling, otherwise you get a small text
+pointer file instead of the real database:
+
+```
+brew install git-lfs   # or: apt install git-lfs
+git lfs install
+git lfs pull
+```
+
 ## How to use
 
 ```
-python3 wordle.py
+python3 run.py
 ```
 
 The game has two modes.
